@@ -88,7 +88,7 @@
   </div>
   <div class="scroller"><div id="board"></div></div>
   <div id="msg"></div>
-  <div class="hint">Click to dig. Right-click or long-press to flag. Click a number to clear around it. R restarts.</div>
+  <div class="hint">Click to dig. Right-click or long-press to flag. Click or middle-click a number to clear around it. R restarts.</div>
 </div>
 
 <script>
@@ -246,6 +246,13 @@ function target(e) { const t = e.target.closest(".c"); return t ? [+t.dataset.x,
 boardEl.addEventListener("contextmenu", e => {
   e.preventDefault();
   const t = target(e); if (t) flag(...t);
+});
+boardEl.addEventListener("mousedown", e => { if (e.button === 1) e.preventDefault(); });
+boardEl.addEventListener("auxclick", e => {
+  if (e.button !== 1) return;
+  e.preventDefault();
+  const t = target(e);
+  if (t && !over && grid[t[1]][t[0]].open) chord(...t);
 });
 boardEl.addEventListener("pointerdown", e => {
   if (e.pointerType === "mouse") return;
