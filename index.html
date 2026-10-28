@@ -8,8 +8,9 @@
   :root {
     --bg: #0a0a0a;
     --surface: #141414;
-    --cell: #1c1c1c;
-    --cell-hover: #282828;
+    --cell: #353535;
+    --open: #090909;
+    --cell-hover: #444444;
     --line: #2a2a2a;
     --text: #f5f5f2;
     --dim: #77776f;
@@ -20,12 +21,13 @@
     --size: 36px;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { scrollbar-gutter: stable; }
   html, body { margin: 0; min-height: 100%; }
   body {
     background: var(--bg); color: var(--text);
     font-family: "Inter", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
     display: flex; flex-direction: column; align-items: center;
-    padding: 40px 12px 40px;
+    padding: 40px 12px 120px;
     user-select: none; -webkit-user-select: none;
   }
   .wrap { display: flex; flex-direction: column; align-items: stretch; max-width: 100%; }
@@ -56,15 +58,16 @@
     position: relative; width: var(--size); height: var(--size); border-radius: 7px;
     display: flex; align-items: center; justify-content: center;
     font-family: var(--num); font-weight: 700; font-size: calc(var(--size) * .5); font-variant-numeric: tabular-nums;
-    background: var(--cell); cursor: pointer; transition: background .12s;
+    background: var(--cell); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); cursor: pointer; transition: background .12s;
   }
   .c:hover:not(.open) { background: var(--cell-hover); }
-  .c.open { background: transparent; cursor: default; }
-  .c.adj:not(.open) { background: #242116; box-shadow: inset 0 0 0 1px rgba(212,175,55,.22); }
-  .c.adj.open { background: rgba(212,175,55,.05); }
-  #gear { font: inherit; font-size: .78rem; color: var(--dim); background: none; border: 0; padding: 0; margin: 14px auto 0; cursor: pointer; }
+  .c.open { background: var(--open); box-shadow: none; cursor: default; }
+  .c.adj:not(.open) { background: #403a24; box-shadow: inset 0 0 0 1px rgba(212,175,55,.3); }
+  .c.adj.open { background: #14120a; }
+  .settings { position: relative; align-self: center; margin-top: 14px; }
+  #gear { font: inherit; font-size: .78rem; color: var(--dim); background: none; border: 0; padding: 0; cursor: pointer; }
   #gear:hover { color: var(--text); }
-  #panel { margin-top: 10px; align-self: center; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  #panel { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: min(320px, 86vw); z-index: 5; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; box-shadow: 0 12px 32px rgba(0,0,0,.6); }
   .opt { display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: .85rem; }
   .opt small { display: block; color: var(--dim); font-size: .72rem; margin-top: 2px; }
   .opt input { position: absolute; opacity: 0; pointer-events: none; }
@@ -78,6 +81,16 @@
     border-left: 11px solid var(--accent); border-top: 6px solid transparent; border-bottom: 6px solid transparent;
   }
   .c.flag::after { content: ""; position: absolute; width: 2px; height: 16px; background: var(--accent); left: calc(50% - 7px); top: calc(50% - 8px); border-radius: 1px; }
+  .c.anim { animation: clear .28s ease-out backwards; }
+  @keyframes clear {
+    from { background: var(--cell); color: transparent; box-shadow: inset 0 1px 0 rgba(255,255,255,.08); transform: scale(1); }
+    40% { background: var(--cell); transform: scale(.8); }
+    to { transform: scale(1); }
+  }
+  @keyframes dot { from { transform: scale(0); } 70% { transform: scale(1.25); } to { transform: scale(1); } }
+  .c.flag::before, .c.flag::after { animation: dot .18s ease-out; }
+  .c.mine::before { animation: dot .3s ease-out backwards; animation-delay: var(--md, 0ms); }
+  @media (prefers-reduced-motion: reduce) { .c.anim, .c.flag::before, .c.flag::after, .c.mine::before { animation: none; } }
   .c.mine::before { content: ""; width: 38%; height: 38%; border-radius: 50%; background: var(--red); }
   .c.boom { background: rgba(194,59,50,.3); }
   .c.wrong::before { content: ""; width: 38%; height: 2px; background: var(--red); transform: rotate(-45deg); }
@@ -109,10 +122,12 @@
   </div>
   <div class="scroller"><div id="board"></div></div>
   <div id="msg"></div>
-  <button id="gear">Settings</button>
-  <div id="panel" hidden>
-    <label class="opt"><input type="checkbox" id="autochord"><i></i>
-      <span>Hover chord<small>Acts like the middle button is always held: hovering highlights the tiles around it and clears a satisfied number.</small></span></label>
+  <div class="settings">
+    <button id="gear">Settings</button>
+    <div id="panel" hidden>
+      <label class="opt"><input type="checkbox" id="autochord"><i></i>
+        <span>Hover chord<small>Acts like the middle button is always held: hovering highlights the tiles around it and clears a satisfied number.</small></span></label>
+    </div>
   </div>
   <div class="hint" id="exp" hidden>Experimental: placing a flag subtracts 1 from every number around it. A 0 means that number is satisfied.</div>
   <div class="hint">Click to dig. Right-click or long-press to flag. Middle-click a number to clear around it (hold to highlight around any tile). R restarts.</div>
@@ -216,17 +231,24 @@ function paint(x, y) {
       el.textContent = v;
       el.classList.add(v < 0 ? "neg" : "n" + v);
     }
+    if (c.t0) {
+      const e = performance.now() - c.t0;
+      if (e < c.d + 280) { el.classList.add("anim"); el.style.animationDelay = (c.d - e) + "ms"; }
+      else c.t0 = 0;
+    }
   } else if (c.flag) el.classList.add("flag");
 }
 
+// opens tiles breadth first; each tile's delay grows with its distance so the clear ripples outward
 function reveal(x, y) {
-  const stack = [[x, y]];
-  while (stack.length) {
-    const [cx, cy] = stack.pop(), c = grid[cy][cx];
+  const q = [[x, y, 0]], now = performance.now();
+  for (let i = 0; i < q.length; i++) {
+    const [cx, cy, d] = q[i], c = grid[cy][cx];
     if (c.open || c.flag) continue;
     c.open = true; revealed++;
+    c.d = Math.min(d * 35, 800); c.t0 = now;
     paint(cx, cy);
-    if (!c.n) for (const [nx, ny] of neighbors(cx, cy)) stack.push([nx, ny]);
+    if (!c.n) for (const [nx, ny] of neighbors(cx, cy)) q.push([nx, ny, d + 1]);
   }
 }
 
@@ -269,7 +291,7 @@ function lose(bx, by) {
   over = true; endHover(); clearInterval(timer);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const c = grid[y][x], el = cells[y][x];
-    if (c.mine && !c.flag) el.className = "c open mine";
+    if (c.mine && !c.flag) { el.className = "c open mine"; el.style.setProperty("--md", Math.min(Math.hypot(x - bx, y - by) * 45, 900) + "ms"); }
     else if (!c.mine && c.flag) el.className = "c open wrong";
   }
   cells[by][bx].className = "c open mine boom";
@@ -360,6 +382,8 @@ boardEl.addEventListener("click", e => {
 });
 $("face").onclick = reset;
 $("gear").onclick = () => { $("panel").hidden = !$("panel").hidden; };
+document.addEventListener("click", e => { if (!e.target.closest(".settings")) $("panel").hidden = true; });
+document.addEventListener("keydown", e => { if (e.key === "Escape") $("panel").hidden = true; });
 try { autoChord = localStorage.getItem("autochord") === "1"; } catch (e) {}
 $("autochord").checked = autoChord;
 $("autochord").onchange = e => {
