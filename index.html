@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Minesweeper</title>
+<style>
+  :root {
+    --bg: #07060d;
+    --panel: #12101f;
+    --cell: #1a1730;
+    --cell-hi: #241f43;
+    --open: #0d0b19;
+    --text: #e8e6ff;
+    --dim: #7b77a8;
+    --pink: #ff2e93;
+    --cyan: #19f2ff;
+    --lime: #b6ff3b;
+    --amber: #ffb82e;
+    --size: 36px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background:
+      radial-gradient(900px 500px at 15% -10%, rgba(255,46,147,.18), transparent 60%),
+      radial-gradient(900px 500px at 90% 110%, rgba(25,242,255,.15), transparent 60%),
+      var(--bg);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 20px 12px 32px;
+    user-select: none; -webkit-user-select: none;
+  }
+  h1 {
+    margin: 0 0 14px; font-size: 2.2rem; font-weight: 900; letter-spacing: .28em;
+    text-transform: uppercase; color: #fff;
+    text-shadow: 0 0 8px var(--pink), 0 0 22px var(--pink), 0 0 46px var(--pink);
+  }
+  h1 span { color: var(--cyan); text-shadow: 0 0 8px var(--cyan), 0 0 22px var(--cyan), 0 0 46px var(--cyan); }
+  .modes { display: flex; gap: 8px; margin-bottom: 14px; }
+  .modes button, .face {
+    font: inherit; color: var(--dim); background: var(--panel);
+    border: 1px solid #2c2750; border-radius: 10px; padding: 8px 16px; cursor: pointer;
+    letter-spacing: .08em; text-transform: uppercase; font-size: .78rem; font-weight: 700;
+    transition: all .15s;
+  }
+  .modes button:hover { color: var(--text); border-color: var(--cyan); }
+  .modes button.on { color: #04131a; background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 18px rgba(25,242,255,.55); }
+  .hud {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    background: var(--panel); border: 1px solid #2c2750; border-radius: 14px;
+    padding: 10px 16px; margin-bottom: 14px; width: min(100%, 560px);
+    box-shadow: 0 0 30px rgba(255,46,147,.12);
+  }
+  .lcd {
+    font-family: Consolas, "Courier New", monospace; font-weight: 700; font-size: 1.7rem;
+    color: var(--pink); text-shadow: 0 0 10px var(--pink);
+    background: #05040a; border-radius: 8px; padding: 2px 12px; min-width: 76px; text-align: center;
+    letter-spacing: .08em;
+  }
+  .lcd.t { color: var(--cyan); text-shadow: 0 0 10px var(--cyan); }
+  .face { font-size: 1.5rem; padding: 4px 14px; color: var(--text); }
+  .face:hover { border-color: var(--pink); box-shadow: 0 0 14px rgba(255,46,147,.5); }
+  .scroller { max-width: 100%; overflow: auto; padding: 14px; border-radius: 18px;
+    background: var(--panel); border: 1px solid #2c2750; box-shadow: 0 0 50px rgba(25,242,255,.1); }
+  #board { display: grid; gap: 3px; touch-action: manipulation; }
+  .c {
+    width: var(--size); height: var(--size); border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: calc(var(--size) * .5);
+    background: linear-gradient(145deg, var(--cell-hi), var(--cell));
+    border: 1px solid #332d5e; cursor: pointer; transition: transform .08s, background .15s, box-shadow .15s;
+  }
+  .c:hover:not(.open) { box-shadow: 0 0 12px rgba(25,242,255,.45); border-color: var(--cyan); transform: translateY(-1px); }
+  .c.open { background: var(--open); border-color: #181430; cursor: default; animation: pop .18s ease-out; }
+  .c.flag { color: var(--pink); text-shadow: 0 0 10px var(--pink); }
+  .c.flag::before { content: "\2691"; }
+  .c.mine { background: #3a0a24; border-color: var(--pink); box-shadow: 0 0 14px var(--pink); }
+  .c.mine::before { content: "\2738"; color: var(--pink); text-shadow: 0 0 10px var(--pink); font-size: 1.1em; }
+  .c.boom { background: var(--pink); }
+  .c.boom::before { color: #fff; text-shadow: 0 0 12px #fff; }
+  .c.wrong { border-color: var(--amber); }
+  .c.wrong::before { content: "\2691"; color: var(--amber); text-decoration: line-through; }
+  .c.win.flag { color: var(--lime); text-shadow: 0 0 10px var(--lime); }
+  @keyframes pop { from { transform: scale(.7); opacity: .4; } to { transform: scale(1); opacity: 1; } }
+  .n1 { color: #35b8ff; text-shadow: 0 0 8px #35b8ff; }
+  .n2 { color: var(--lime); text-shadow: 0 0 8px var(--lime); }
+  .n3 { color: #ff5a5a; text-shadow: 0 0 8px #ff5a5a; }
+  .n4 { color: #b27cff; text-shadow: 0 0 8px #b27cff; }
+  .n5 { color: var(--amber); text-shadow: 0 0 8px var(--amber); }
+  .n6 { color: var(--cyan); text-shadow: 0 0 8px var(--cyan); }
+  .n7 { color: #fff; }
+  .n8 { color: var(--dim); }
+  #msg { height: 1.6em; margin-top: 14px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; font-size: 1rem; }
+  #msg.win { color: var(--lime); text-shadow: 0 0 14px var(--lime); }
+  #msg.lose { color: var(--pink); text-shadow: 0 0 14px var(--pink); }
+  .hint { margin-top: 6px; color: var(--dim); font-size: .78rem; text-align: center; max-width: 520px; line-height: 1.5; }
+  @media (max-width: 520px) { h1 { font-size: 1.6rem; } :root { --size: 30px; } }
+</style>
+</head>
+<body>
+  <h1>Mine<span>sweeper</span></h1>
+  <div class="modes" id="modes"></div>
+  <div class="hud">
+    <div class="lcd" id="mines">010</div>
+    <button class="face" id="face" title="New game">&#128526;</button>
+    <div class="lcd t" id="time">000</div>
+  </div>
+  <div class="scroller"><div id="board"></div></div>
+  <div id="msg"></div>
+  <div class="hint">Click to dig. Right-click, or long-press on touch, to flag. Click a number to clear around it when its flags match.</div>
+
+<script>
+const MODES = {
+  Easy:   { w: 9,  h: 9,  m: 10 },
+  Medium: { w: 16, h: 16, m: 40 },
+  Hard:   { w: 30, h: 16, m: 99 },
+};
+let mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
+
+const $ = id => document.getElementById(id);
+const boardEl = $("board");
+
+function pad(n) { return String(Math.max(0, Math.min(999, n))).padStart(3, "0"); }
+
+function buildModes() {
+  $("modes").innerHTML = "";
+  for (const name in MODES) {
+    const b = document.createElement("button");
+    b.textContent = name;
+    b.className = name === mode ? "on" : "";
+    b.onclick = () => { mode = name; buildModes(); reset(); };
+    $("modes").appendChild(b);
+  }
+}
+
+function reset() {
+  ({ w: W, h: H, m: M } = MODES[mode]);
+  clearInterval(timer);
+  secs = 0; started = false; over = false; flags = 0; revealed = 0;
+  grid = Array.from({ length: H }, () => Array.from({ length: W }, () => ({ mine: false, n: 0, open: false, flag: false })));
+  boardEl.style.gridTemplateColumns = `repeat(${W}, var(--size))`;
+  boardEl.innerHTML = "";
+  cells = [];
+  for (let y = 0; y < H; y++) {
+    cells.push([]);
+    for (let x = 0; x < W; x++) {
+      const el = document.createElement("div");
+      el.className = "c";
+      el.dataset.x = x; el.dataset.y = y;
+      boardEl.appendChild(el);
+      cells[y].push(el);
+    }
+  }
+  $("time").textContent = "000";
+  $("mines").textContent = pad(M);
+  $("face").textContent = "\u{1F60E}";
+  $("msg").textContent = ""; $("msg").className = "";
+}
+
+function neighbors(x, y) {
+  const out = [];
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    if (!dx && !dy) continue;
+    const nx = x + dx, ny = y + dy;
+    if (nx >= 0 && ny >= 0 && nx < W && ny < H) out.push([nx, ny]);
+  }
+  return out;
+}
+
+function plant(sx, sy) {
+  const safe = new Set([sx + "," + sy, ...neighbors(sx, sy).map(([a, b]) => a + "," + b)]);
+  let placed = 0;
+  while (placed < M) {
+    const x = Math.floor(Math.random() * W), y = Math.floor(Math.random() * H);
+    if (grid[y][x].mine || safe.has(x + "," + y)) continue;
+    grid[y][x].mine = true; placed++;
+  }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+    grid[y][x].n = neighbors(x, y).filter(([a, b]) => grid[b][a].mine).length;
+  timer = setInterval(() => { secs++; $("time").textContent = pad(secs); }, 1000);
+  started = true;
+}
+
+function paint(x, y) {
+  const c = grid[y][x], el = cells[y][x];
+  el.className = "c";
+  el.textContent = "";
+  if (c.open) {
+    el.classList.add("open");
+    if (c.n) { el.textContent = c.n; el.classList.add("n" + c.n); }
+  } else if (c.flag) el.classList.add("flag");
+}
+
+function reveal(x, y) {
+  const stack = [[x, y]];
+  while (stack.length) {
+    const [cx, cy] = stack.pop(), c = grid[cy][cx];
+    if (c.open || c.flag) continue;
+    c.open = true; revealed++;
+    paint(cx, cy);
+    if (!c.n) for (const [nx, ny] of neighbors(cx, cy)) stack.push([nx, ny]);
+  }
+}
+
+function dig(x, y) {
+  if (over) return;
+  const c = grid[y][x];
+  if (c.flag) return;
+  if (c.open) return chord(x, y);
+  if (!started) plant(x, y);
+  if (c.mine) return lose(x, y);
+  reveal(x, y);
+  if (revealed === W * H - M) win();
+}
+
+function chord(x, y) {
+  const c = grid[y][x];
+  const ns = neighbors(x, y);
+  if (!c.n || ns.filter(([a, b]) => grid[b][a].flag).length !== c.n) return;
+  for (const [a, b] of ns) {
+    const t = grid[b][a];
+    if (t.flag || t.open) continue;
+    if (t.mine) return lose(a, b);
+    reveal(a, b);
+  }
+  if (revealed === W * H - M) win();
+}
+
+function flag(x, y) {
+  if (over) return;
+  const c = grid[y][x];
+  if (c.open) return;
+  c.flag = !c.flag;
+  flags += c.flag ? 1 : -1;
+  $("mines").textContent = pad(M - flags);
+  paint(x, y);
+}
+
+function lose(bx, by) {
+  over = true; clearInterval(timer);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const c = grid[y][x], el = cells[y][x];
+    if (c.mine && !c.flag) el.className = "c open mine";
+    else if (!c.mine && c.flag) el.className = "c open wrong";
+  }
+  cells[by][bx].className = "c open mine boom";
+  $("face").textContent = "\u{1F635}";
+  $("msg").textContent = "Boom. Game over"; $("msg").className = "lose";
+}
+
+function win() {
+  over = true; clearInterval(timer);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const c = grid[y][x];
+    if (c.mine && !c.flag) { c.flag = true; paint(x, y); }
+    if (c.mine) cells[y][x].classList.add("win");
+  }
+  $("mines").textContent = "000";
+  $("face").textContent = "\u{1F973}";
+  $("msg").textContent = `Cleared in ${secs}s`; $("msg").className = "win";
+}
+
+// input: left click, right click, long press for touch
+let pressTimer = null, longFired = false;
+function target(e) { const t = e.target.closest(".c"); return t ? [+t.dataset.x, +t.dataset.y] : null; }
+
+boardEl.addEventListener("contextmenu", e => {
+  e.preventDefault();
+  const t = target(e); if (t) flag(...t);
+});
+boardEl.addEventListener("pointerdown", e => {
+  if (e.pointerType === "mouse") return;
+  const t = target(e); if (!t) return;
+  longFired = false;
+  pressTimer = setTimeout(() => { longFired = true; flag(...t); if (navigator.vibrate) navigator.vibrate(20); }, 380);
+});
+["pointerup", "pointercancel", "pointermove"].forEach(ev =>
+  boardEl.addEventListener(ev, () => clearTimeout(pressTimer)));
+boardEl.addEventListener("click", e => {
+  if (longFired) { longFired = false; return; }
+  const t = target(e); if (t) dig(...t);
+});
+$("face").onclick = reset;
+document.addEventListener("keydown", e => { if (e.key === "r" || e.key === "R") reset(); });
+
+buildModes();
+reset();
+</script>
+</body>
+</html>
