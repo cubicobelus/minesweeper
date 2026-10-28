@@ -30,6 +30,10 @@
   h1 { margin: 0 0 20px; font-size: 1.05rem; font-weight: 600; letter-spacing: -.01em; }
   h1 span { color: var(--dim); font-weight: 500; }
   .bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+  .tabs { display: flex; gap: 22px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
+  .tabs button { font: inherit; font-size: .85rem; font-weight: 500; color: var(--dim); background: none; border: 0; padding: 0 0 10px; margin-bottom: -1px; cursor: pointer; border-bottom: 2px solid transparent; transition: color .15s; }
+  .tabs button:hover { color: var(--text); }
+  .tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
   .modes { display: flex; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
   .modes button {
     font: inherit; font-size: .8rem; font-weight: 500; color: var(--dim); background: none;
@@ -67,6 +71,7 @@
   .c.win.flag::before { border-left-color: #6be39a; }
   .c.win.flag::after { background: #6be39a; }
   .n1 { color: #6ea8ff; } .n2 { color: #5fd39a; } .n3 { color: #ff7a7a; } .n4 { color: #b394ff; }
+  .n0 { color: #3c3c46; } .neg { color: var(--red); }
   .n5 { color: #ffb86b; } .n6 { color: #5fd3d3; } .n7 { color: #e5e5ea; } .n8 { color: #8a8a96; }
   #msg { height: 1.4em; margin-top: 14px; font-size: .85rem; font-weight: 500; color: var(--dim); }
   #msg.win { color: #6be39a; }
@@ -78,6 +83,7 @@
 <body>
 <div class="wrap">
   <h1>minesweeper</h1>
+  <div class="tabs" id="tabs"></div>
   <div class="bar">
     <div class="modes" id="modes"></div>
     <div class="stats">
@@ -88,6 +94,7 @@
   </div>
   <div class="scroller"><div id="board"></div></div>
   <div id="msg"></div>
+  <div class="hint" id="exp" hidden>Experimental: placing a flag subtracts 1 from every number around it. A 0 means that number is satisfied.</div>
   <div class="hint">Click to dig. Right-click or long-press to flag. Click or middle-click a number to clear around it. R restarts.</div>
 </div>
 
@@ -97,12 +104,23 @@ const MODES = {
   Medium: { w: 16, h: 16, m: 40 },
   Hard:   { w: 30, h: 16, m: 99 },
 };
-let mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
+let experimental = false, mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
 
 const $ = id => document.getElementById(id);
 const boardEl = $("board");
 
 function pad(n) { return String(Math.max(0, Math.min(999, n))).padStart(3, "0"); }
+
+function buildTabs() {
+  $("tabs").innerHTML = "";
+  [["Classic", false], ["Experimental", true]].forEach(([name, exp]) => {
+    const b = document.createElement("button");
+    b.textContent = name;
+    b.className = exp === experimental ? "on" : "";
+    b.onclick = () => { experimental = exp; buildTabs(); $("exp").hidden = !exp; reset(); };
+    $("tabs").appendChild(b);
+  });
+}
 
 function buildModes() {
   $("modes").innerHTML = "";
@@ -168,7 +186,11 @@ function paint(x, y) {
   el.textContent = "";
   if (c.open) {
     el.classList.add("open");
-    if (c.n) { el.textContent = c.n; el.classList.add("n" + c.n); }
+    if (c.n) {
+      const v = experimental ? c.n - neighbors(x, y).filter(([a, b]) => grid[b][a].flag).length : c.n;
+      el.textContent = v;
+      el.classList.add(v < 0 ? "neg" : "n" + v);
+    }
   } else if (c.flag) el.classList.add("flag");
 }
 
@@ -215,6 +237,7 @@ function flag(x, y) {
   flags += c.flag ? 1 : -1;
   $("mines").textContent = pad(M - flags);
   paint(x, y);
+  if (experimental) for (const [a, b] of neighbors(x, y)) if (grid[b][a].open) paint(a, b);
 }
 
 function lose(bx, by) {
@@ -235,6 +258,7 @@ function win() {
     if (c.mine && !c.flag) { c.flag = true; paint(x, y); }
     if (c.mine) cells[y][x].classList.add("win");
   }
+  if (experimental) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (grid[y][x].open) paint(x, y);
   $("mines").textContent = "000";
   $("msg").textContent = `Cleared in ${secs}s`; $("msg").className = "win";
 }
@@ -269,6 +293,7 @@ boardEl.addEventListener("click", e => {
 $("face").onclick = reset;
 document.addEventListener("keydown", e => { if (e.key === "r" || e.key === "R") reset(); });
 
+buildTabs();
 buildModes();
 reset();
 </script>
