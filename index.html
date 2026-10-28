@@ -137,7 +137,10 @@ function buildTabs() {
     const b = document.createElement("button");
     b.textContent = name;
     b.className = exp === experimental ? "on" : "";
-    b.onclick = () => { experimental = exp; buildTabs(); $("exp").hidden = !exp; reset(); };
+    b.onclick = () => {
+      experimental = exp; buildTabs(); $("exp").hidden = !exp;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (grid[y][x].open) paint(x, y);
+    };
     $("tabs").appendChild(b);
   });
 }
