@@ -6,15 +6,17 @@
 <title>Minesweeper</title>
 <style>
   :root {
-    --bg: #0a0a0b;
-    --surface: #131316;
-    --cell: #1b1b20;
-    --cell-hover: #25252c;
-    --line: #232328;
-    --text: #f2f2f4;
-    --dim: #6f6f7a;
-    --accent: #8b9bff;
-    --red: #ff5c5c;
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --cell: #1c1c1c;
+    --cell-hover: #282828;
+    --line: #2a2a2a;
+    --text: #f5f5f2;
+    --dim: #77776f;
+    --accent: #d4af37;
+    --red: #c23b32;
+    --green: #4caf6b;
+    --num: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", monospace;
     --size: 36px;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -53,13 +55,13 @@
   .c {
     position: relative; width: var(--size); height: var(--size); border-radius: 7px;
     display: flex; align-items: center; justify-content: center;
-    font-weight: 600; font-size: calc(var(--size) * .46); font-variant-numeric: tabular-nums;
+    font-family: var(--num); font-weight: 700; font-size: calc(var(--size) * .5); font-variant-numeric: tabular-nums;
     background: var(--cell); cursor: pointer; transition: background .12s;
   }
   .c:hover:not(.open) { background: var(--cell-hover); }
   .c.open { background: transparent; cursor: default; }
-  .c.adj:not(.open) { background: #272a45; box-shadow: inset 0 0 0 1px rgba(139,155,255,.4); }
-  .c.adj.open { background: rgba(139,155,255,.1); }
+  .c.adj:not(.open) { background: #242116; box-shadow: inset 0 0 0 1px rgba(212,175,55,.22); }
+  .c.adj.open { background: rgba(212,175,55,.05); }
   #gear { font: inherit; font-size: .78rem; color: var(--dim); background: none; border: 0; padding: 0; margin: 14px auto 0; cursor: pointer; }
   #gear:hover { color: var(--text); }
   #panel { margin-top: 10px; align-self: center; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
@@ -77,17 +79,17 @@
   }
   .c.flag::after { content: ""; position: absolute; width: 2px; height: 16px; background: var(--accent); left: calc(50% - 7px); top: calc(50% - 8px); border-radius: 1px; }
   .c.mine::before { content: ""; width: 38%; height: 38%; border-radius: 50%; background: var(--red); }
-  .c.boom { background: rgba(255,92,92,.22); }
+  .c.boom { background: rgba(194,59,50,.3); }
   .c.wrong::before { content: ""; width: 38%; height: 2px; background: var(--red); transform: rotate(-45deg); }
   .c.wrong::after { content: ""; position: absolute; width: 38%; height: 2px; background: var(--red); transform: rotate(45deg); }
-  .c.wrong { background: rgba(255,92,92,.1); }
-  .c.win.flag::before { border-left-color: #6be39a; }
-  .c.win.flag::after { background: #6be39a; }
+  .c.wrong { background: rgba(194,59,50,.12); }
+  .c.win.flag::before { border-left-color: var(--green); }
+  .c.win.flag::after { background: var(--green); }
   .n1 { color: #6ea8ff; } .n2 { color: #5fd39a; } .n3 { color: #ff7a7a; } .n4 { color: #b394ff; }
-  .n0 { color: #3c3c46; } .neg { color: var(--red); }
+  .n0 { color: #3a3a36; } .neg { color: var(--red); }
   .n5 { color: #ffb86b; } .n6 { color: #5fd3d3; } .n7 { color: #e5e5ea; } .n8 { color: #8a8a96; }
   #msg { text-align: center; height: 1.4em; margin-top: 14px; font-size: .85rem; font-weight: 500; color: var(--dim); }
-  #msg.win { color: #6be39a; }
+  #msg.win { color: var(--green); }
   #msg.lose { color: var(--red); }
   .hint { width: 0; min-width: 100%; text-align: center; margin-top: 4px; color: var(--dim); font-size: .75rem; opacity: .7; }
   @media (max-width: 520px) { :root { --size: 30px; } }
@@ -110,10 +112,10 @@
   <button id="gear">Settings</button>
   <div id="panel" hidden>
     <label class="opt"><input type="checkbox" id="autochord"><i></i>
-      <span>Hover chord<small>Acts like the middle button is always held: hovering a satisfied number clears around it.</small></span></label>
+      <span>Hover chord<small>Acts like the middle button is always held: hovering highlights the tiles around it and clears a satisfied number.</small></span></label>
   </div>
   <div class="hint" id="exp" hidden>Experimental: placing a flag subtracts 1 from every number around it. A 0 means that number is satisfied.</div>
-  <div class="hint">Click to dig. Right-click or long-press to flag. Click or middle-click a number to clear around it. R restarts.</div>
+  <div class="hint">Click to dig. Right-click or long-press to flag. Middle-click a number to clear around it (hold to highlight around any tile). R restarts.</div>
 </div>
 
 <script>
@@ -122,7 +124,7 @@ const MODES = {
   Medium: { w: 16, h: 16, m: 40 },
   Hard:   { w: 30, h: 16, m: 99 },
 };
-let experimental = false, autoChord = false, hover = null, mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
+let experimental = false, autoChord = false, hover = null, hl = null, midPos = null, midHeld = false, mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
 
 const $ = id => document.getElementById(id);
 const boardEl = $("board");
@@ -154,7 +156,7 @@ function buildModes() {
 function reset() {
   ({ w: W, h: H, m: M } = MODES[mode]);
   clearInterval(timer);
-  hover = null;
+  hover = hl = midPos = null; midHeld = false;
   secs = 0; started = false; over = false; flags = 0; revealed = 0;
   grid = Array.from({ length: H }, () => Array.from({ length: W }, () => ({ mine: false, n: 0, open: false, flag: false })));
   boardEl.style.gridTemplateColumns = `repeat(${W}, var(--size))`;
@@ -203,7 +205,7 @@ function paint(x, y) {
   const c = grid[y][x], el = cells[y][x];
   el.className = "c";
   el.textContent = "";
-  if (hover && Math.max(Math.abs(hover[0] - x), Math.abs(hover[1] - y)) === 1) el.classList.add("adj");
+  if (hl && Math.max(Math.abs(hl[0] - x), Math.abs(hl[1] - y)) === 1) el.classList.add("adj");
   if (c.open) {
     el.classList.add("open");
     if (c.n) {
@@ -283,9 +285,9 @@ function win() {
   $("msg").textContent = `Cleared in ${secs}s`; $("msg").className = "win";
 }
 
-function setHover(pos) {
-  const old = hover;
-  hover = pos;
+function setHl(pos) {
+  const old = hl;
+  hl = pos;
   if (over) return;
   for (const p of [old, pos]) {
     if (!p) continue;
@@ -294,8 +296,17 @@ function setHover(pos) {
   }
 }
 
+// the tiles around a tile light up while the middle button is held, or while hovering with hover chord on
+function refreshHl() {
+  const want = midHeld ? midPos : (autoChord ? hover : null);
+  if (want === hl || (want && hl && want[0] === hl[0] && want[1] === hl[1])) return;
+  setHl(want);
+}
+
+function setHover(pos) { hover = pos; refreshHl(); }
+
 function endHover() {
-  hover = null;
+  hover = hl = null; midHeld = false;
   boardEl.querySelectorAll(".adj").forEach(el => el.classList.remove("adj"));
 }
 
@@ -315,10 +326,16 @@ boardEl.addEventListener("contextmenu", e => {
 boardEl.addEventListener("pointerover", e => {
   if (e.pointerType !== "mouse") return;
   const t = target(e);
-  if (t) { setHover(t); hoverChord(); }
+  if (t) { if (midHeld) midPos = t; setHover(t); hoverChord(); }
 });
 boardEl.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") setHover(null); });
-boardEl.addEventListener("mousedown", e => { if (e.button === 1) e.preventDefault(); });
+boardEl.addEventListener("mousedown", e => {
+  if (e.button !== 1) return;
+  e.preventDefault();
+  const t = target(e);
+  if (t) { midHeld = true; midPos = t; refreshHl(); }
+});
+window.addEventListener("mouseup", e => { if (e.button === 1) { midHeld = false; refreshHl(); } });
 boardEl.addEventListener("auxclick", e => {
   if (e.button !== 1) return;
   e.preventDefault();
@@ -345,6 +362,7 @@ $("autochord").checked = autoChord;
 $("autochord").onchange = e => {
   autoChord = e.target.checked;
   try { localStorage.setItem("autochord", autoChord ? "1" : "0"); } catch (err) {}
+  refreshHl();
   hoverChord();
 };
 document.addEventListener("keydown", e => { if (e.key === "r" || e.key === "R") reset(); });
