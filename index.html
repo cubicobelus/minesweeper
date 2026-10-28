@@ -91,6 +91,9 @@
   }
   @keyframes dot { from { transform: scale(0); } 70% { transform: scale(1.25); } to { transform: scale(1); } }
   .c.flag::before, .c.flag::after { animation: dot .18s ease-out; }
+  .c.sure, .c.sure:hover:not(.open), .c.sure.adj:not(.open) { background: #8c2f2a; box-shadow: inset 0 1px 0 rgba(255,255,255,.12), inset 0 -2px 0 rgba(0,0,0,.2); }
+  .c.sure:hover:not(.open) { background: #a33a33; }
+  .c.sure.adj:not(.open) { box-shadow: inset 0 0 0 1px rgba(212,175,55,.45); }
   .c.mine::before { animation: dot .3s ease-out backwards; animation-delay: var(--md, 0ms); }
   @media (prefers-reduced-motion: reduce) { .c.anim, .c.flag::before, .c.flag::after, .c.mine::before { animation: none; } }
   .c.mine::before { content: ""; width: 38%; height: 38%; border-radius: 50%; background: var(--red); }
@@ -141,22 +144,30 @@ const MODES = {
   Medium: { w: 16, h: 16, m: 40 },
   Hard:   { w: 30, h: 16, m: 99 },
 };
-let experimental = false, autoChord = false, hover = null, hl = null, midPos = null, midHeld = false, mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
+let view = "classic", sure = new Set(), experimental = false, autoChord = false, hover = null, hl = null, midPos = null, midHeld = false, mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
 
 const $ = id => document.getElementById(id);
 const boardEl = $("board");
 
 function pad(n) { return String(Math.max(0, Math.min(999, n))).padStart(3, "0"); }
 
+const VIEWS = [
+  ["classic", "Classic", ""],
+  ["experimental", "Experimental", "Experimental: placing a flag subtracts 1 from every number around it. A 0 means that number is satisfied."],
+  ["finder", "Mine finder", "Mine finder: red tiles are mines for certain, worked out from the numbers on the board. Flags are ignored."],
+];
+
 function buildTabs() {
   $("tabs").innerHTML = "";
-  [["Classic", false], ["Experimental", true]].forEach(([name, exp]) => {
+  VIEWS.forEach(([id, name, hint]) => {
     const b = document.createElement("button");
     b.textContent = name;
-    b.className = exp === experimental ? "on" : "";
+    b.className = id === view ? "on" : "";
     b.onclick = () => {
-      experimental = exp; buildTabs(); $("exp").hidden = !exp;
+      view = id; experimental = id === "experimental"; buildTabs();
+      $("exp").hidden = !hint; $("exp").textContent = hint;
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (grid[y][x].open) paint(x, y);
+      refreshSure();
     };
     $("tabs").appendChild(b);
   });
@@ -176,7 +187,7 @@ function buildModes() {
 function reset() {
   ({ w: W, h: H, m: M } = MODES[mode]);
   clearInterval(timer);
-  hover = hl = midPos = null; midHeld = false;
+  hover = hl = midPos = null; midHeld = false; sure = new Set();
   secs = 0; started = false; over = false; flags = 0; revealed = 0;
   grid = Array.from({ length: H }, () => Array.from({ length: W }, () => ({ mine: false, n: 0, open: false, flag: false })));
   boardEl.style.gridTemplateColumns = `repeat(${W}, var(--size))`;
@@ -225,6 +236,7 @@ function paint(x, y) {
   const c = grid[y][x], el = cells[y][x];
   el.className = "c";
   el.textContent = "";
+  if (view === "finder" && !c.open && !c.flag && sure.has(y * W + x)) el.classList.add("sure");
   if (hl && Math.max(Math.abs(hl[0] - x), Math.abs(hl[1] - y)) === 1) el.classList.add("adj");
   if (c.open) {
     el.classList.add("open");
@@ -241,6 +253,48 @@ function paint(x, y) {
   } else if (c.flag) el.classList.add("flag");
 }
 
+// tiles that must be mines, from the numbers alone: each opened number is a constraint (its closed
+// neighbours hold exactly n mines); a constraint that is full marks its tiles, and when one constraint's
+// tiles sit inside another's, the leftover tiles hold the difference
+function deduceMines() {
+  const cons = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const c = grid[y][x];
+    if (!c.open || !c.n) continue;
+    const S = new Set();
+    for (const [a, b] of neighbors(x, y)) if (!grid[b][a].open) S.add(b * W + a);
+    if (S.size) cons.push({ S, need: c.n });
+  }
+  const mines = new Set(), safe = new Set();
+  for (let changed = true; changed;) {
+    changed = false;
+    for (const k of cons) {
+      for (const i of [...k.S]) {
+        if (mines.has(i)) { k.S.delete(i); k.need--; }
+        else if (safe.has(i)) k.S.delete(i);
+      }
+      if (!k.S.size) continue;
+      if (k.need === 0) { k.S.forEach(i => safe.add(i)); changed = true; }
+      else if (k.need === k.S.size) { k.S.forEach(i => mines.add(i)); changed = true; }
+    }
+    for (const A of cons) for (const B of cons) {
+      if (!A.S.size || A.S.size >= B.S.size || ![...A.S].every(i => B.S.has(i))) continue;
+      const D = [...B.S].filter(i => !A.S.has(i)), dn = B.need - A.need;
+      if (dn === 0) { for (const d of D) if (!safe.has(d)) { safe.add(d); changed = true; } }
+      else if (dn === D.length) { for (const d of D) if (!mines.has(d)) { mines.add(d); changed = true; } }
+    }
+  }
+  return mines;
+}
+
+function refreshSure() {
+  const next = view === "finder" && !over ? deduceMines() : new Set(), old = sure;
+  sure = next;
+  if (over) return;
+  for (const k of new Set([...old, ...next]))
+    if (old.has(k) !== next.has(k)) paint(k % W, Math.floor(k / W));
+}
+
 // opens tiles breadth first; each tile's delay grows with its distance so the clear ripples outward
 function reveal(x, y) {
   const q = [[x, y, 0]], now = performance.now();
@@ -252,6 +306,7 @@ function reveal(x, y) {
     paint(cx, cy);
     if (!c.n) for (const [nx, ny] of neighbors(cx, cy)) q.push([nx, ny, d + 1]);
   }
+  if (view === "finder") refreshSure();
 }
 
 function dig(x, y) {
