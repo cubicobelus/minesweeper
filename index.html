@@ -27,10 +27,10 @@
     user-select: none; -webkit-user-select: none;
   }
   .wrap { display: flex; flex-direction: column; align-items: stretch; max-width: 100%; }
-  h1 { margin: 0 0 20px; font-size: 1.05rem; font-weight: 600; letter-spacing: -.01em; }
+  h1 { text-align: center; margin: 0 0 20px; font-size: 1.05rem; font-weight: 600; letter-spacing: -.01em; }
   h1 span { color: var(--dim); font-weight: 500; }
   .bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
-  .tabs { display: flex; gap: 22px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
+  .tabs { display: flex; justify-content: center; gap: 22px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
   .tabs button { font: inherit; font-size: .85rem; font-weight: 500; color: var(--dim); background: none; border: 0; padding: 0 0 10px; margin-bottom: -1px; cursor: pointer; border-bottom: 2px solid transparent; transition: color .15s; }
   .tabs button:hover { color: var(--text); }
   .tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
@@ -48,7 +48,7 @@
     border: 0; border-radius: 8px; padding: 6px 14px; cursor: pointer; transition: opacity .15s;
   }
   #face:hover { opacity: .85; }
-  .scroller { max-width: 100%; overflow: auto; padding: 10px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+  .scroller { align-self: center; width: fit-content; max-width: 100%; overflow: auto; padding: 10px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
   #board { display: grid; gap: 3px; touch-action: manipulation; }
   .c {
     position: relative; width: var(--size); height: var(--size); border-radius: 7px;
@@ -73,10 +73,10 @@
   .n1 { color: #6ea8ff; } .n2 { color: #5fd39a; } .n3 { color: #ff7a7a; } .n4 { color: #b394ff; }
   .n0 { color: #3c3c46; } .neg { color: var(--red); }
   .n5 { color: #ffb86b; } .n6 { color: #5fd3d3; } .n7 { color: #e5e5ea; } .n8 { color: #8a8a96; }
-  #msg { height: 1.4em; margin-top: 14px; font-size: .85rem; font-weight: 500; color: var(--dim); }
+  #msg { text-align: center; height: 1.4em; margin-top: 14px; font-size: .85rem; font-weight: 500; color: var(--dim); }
   #msg.win { color: #6be39a; }
   #msg.lose { color: var(--red); }
-  .hint { margin-top: 4px; color: var(--dim); font-size: .75rem; opacity: .7; }
+  .hint { width: 0; min-width: 100%; text-align: center; margin-top: 4px; color: var(--dim); font-size: .75rem; opacity: .7; }
   @media (max-width: 520px) { :root { --size: 30px; } }
 </style>
 </head>
