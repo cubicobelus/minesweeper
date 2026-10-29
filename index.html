@@ -30,7 +30,7 @@
     padding: 40px 12px 120px;
     user-select: none; -webkit-user-select: none;
   }
-  .wrap { display: flex; flex-direction: column; align-items: stretch; max-width: 100%; }
+  .wrap { position: relative; display: flex; flex-direction: column; align-items: stretch; max-width: 100%; }
   h1 { text-align: center; margin: 0 0 20px; font-size: 1.05rem; font-weight: 600; letter-spacing: -.01em; }
   h1 span { color: var(--dim); font-weight: 500; }
   .bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
@@ -94,6 +94,37 @@
   .c.sure, .c.sure:hover:not(.open), .c.sure.adj:not(.open) { background: #8c2f2a; box-shadow: inset 0 1px 0 rgba(255,255,255,.12), inset 0 -2px 0 rgba(0,0,0,.2); }
   .c.sure:hover:not(.open) { background: #a33a33; }
   .c.sure.adj:not(.open) { box-shadow: inset 0 0 0 1px rgba(212,175,55,.45); }
+  .c.safe, .c.safe:hover:not(.open), .c.safe.adj:not(.open) { background: #3f9a72; box-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -2px 0 rgba(0,0,0,.2); }
+  .c.safe:hover:not(.open) { background: #4cae83; }
+  .c.safe.adj:not(.open) { box-shadow: inset 0 0 0 1px rgba(212,175,55,.45); }
+  .c.safe::before { content: ""; width: 8px; height: 15px; border: solid rgba(2,20,12,.7); border-width: 0 3px 3px 0; transform: rotate(45deg) translate(-2px, -2px); }
+  .c.why { box-shadow: inset 0 0 0 2px var(--accent); }
+  #rules { align-self: center; width: 0; min-width: min(100%, 560px); margin-top: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; font-size: .85rem; }
+  #rules.side { position: absolute; left: calc(100% + 24px); top: 56px; width: 310px; min-width: 0; margin-top: 0; align-self: auto; }
+  #rules h2 { margin: 0 0 4px; font-size: .95rem; font-weight: 600; }
+  #rules p.lead { margin: 0 0 10px; color: var(--dim); font-size: .75rem; line-height: 1.5; }
+  .rule { padding: 9px 0; border-top: 1px solid var(--line); }
+  .rule .opt { font-size: .82rem; align-items: flex-start; }
+  .rule .opt i { margin-top: 2px; }
+  .rule em { font-style: normal; font-size: .62rem; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin-left: 6px; }
+  .rule details { margin: 6px 0 0 46px; }
+  .rule summary { cursor: pointer; font-size: .75rem; color: var(--dim); }
+  .rule summary:hover { color: var(--text); }
+  .lesson { color: var(--dim); font-size: .76rem; line-height: 1.5; }
+  .lesson p { margin: 8px 0; }
+  .mg { display: grid; grid-template-columns: repeat(var(--cols), 24px); gap: 3px; margin: 8px 0 2px; }
+  .mt { width: 24px; height: 24px; border-radius: 6px; background: var(--cell); display: flex; align-items: center; justify-content: center; font: 700 .78rem var(--num); font-style: normal; }
+  .mt.o { background: #000; }
+  .mt.m { background: #8c2f2a; color: #fff; }
+  .mt.s { background: #3f9a72; color: #04140c; }
+  .mt.gap { visibility: hidden; }
+  .bar { height: 16px; border-radius: 8px; font-size: .62rem; line-height: 16px; text-align: center; color: #000; font-weight: 600; }
+  .bar.a { background: var(--accent); }
+  .bar.b { background: #7fb9e8; }
+  .chip { display: inline-block; margin-top: 6px; padding: 3px 8px; border-radius: 8px; background: #000; color: var(--text); font-size: .7rem; }
+  #why { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: #000; color: var(--dim); font-size: .76rem; line-height: 1.5; min-height: 4.4em; }
+  #why b { color: var(--text); }
+  #capnote { margin-top: 8px; color: var(--accent); font-size: .72rem; }
   .c.mine::before { animation: dot .3s ease-out backwards; animation-delay: var(--md, 0ms); }
   @media (prefers-reduced-motion: reduce) { .c.anim, .c.flag::before, .c.flag::after, .c.mine::before { animation: none; } }
   .c.mine::before { content: ""; width: 38%; height: 38%; border-radius: 50%; background: var(--red); }
@@ -136,6 +167,13 @@
   </div>
   <div class="hint" id="exp" hidden>Experimental: placing a flag subtracts 1 from every number around it. A 0 means that number is satisfied.</div>
   <div class="hint">Click to dig. Right-click or long-press to flag. Middle-click a number to clear around it (hold to highlight around any tile). R restarts.</div>
+  <aside id="rules" hidden>
+    <h2>Rules</h2>
+    <p class="lead">Switch rules on or off to practise them. Red tiles are certain mines and green ticks are certain safe tiles. With every rule on, you see everything that can be known from the board.</p>
+    <div id="rulelist"></div>
+    <div id="why"></div>
+    <div id="capnote" hidden>Some groups of tiles were too tangled to list every possibility, so rule 6 skipped them there.</div>
+  </aside>
 </div>
 
 <script>
@@ -144,7 +182,7 @@ const MODES = {
   Medium: { w: 16, h: 16, m: 40 },
   Hard:   { w: 30, h: 16, m: 99 },
 };
-let view = "classic", sure = new Set(), experimental = false, autoChord = false, hover = null, hl = null, midPos = null, midHeld = false, mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
+let view = "classic", marks = new Map(), capped = false, whySet = new Set(), whyTile = null, experimental = false, autoChord = false, hover = null, hl = null, midPos = null, midHeld = false, mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
 
 const $ = id => document.getElementById(id);
 const boardEl = $("board");
@@ -154,7 +192,7 @@ function pad(n) { return String(Math.max(0, Math.min(999, n))).padStart(3, "0");
 const VIEWS = [
   ["classic", "Classic", ""],
   ["experimental", "Experimental", "Experimental: placing a flag subtracts 1 from every number around it. A 0 means that number is satisfied."],
-  ["finder", "Mine finder", "Mine finder: red tiles are mines for certain, worked out from the numbers on the board. Flags are ignored."],
+  ["finder", "Mine finder", "Mine finder: red tiles are certain mines and green ticks are certain safe tiles, worked out from the numbers. Flags are ignored. Choose the rules it may use in the panel."],
 ];
 
 function buildTabs() {
@@ -167,7 +205,9 @@ function buildTabs() {
       view = id; experimental = id === "experimental"; buildTabs();
       $("exp").hidden = !hint; $("exp").textContent = hint;
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (grid[y][x].open) paint(x, y);
-      refreshSure();
+      $("rules").hidden = id !== "finder";
+      layoutRules();
+      refreshMarks();
     };
     $("tabs").appendChild(b);
   });
@@ -187,7 +227,7 @@ function buildModes() {
 function reset() {
   ({ w: W, h: H, m: M } = MODES[mode]);
   clearInterval(timer);
-  hover = hl = midPos = null; midHeld = false; sure = new Set();
+  hover = hl = midPos = null; midHeld = false; marks = new Map(); capped = false; whySet = new Set(); whyTile = null;
   secs = 0; started = false; over = false; flags = 0; revealed = 0;
   grid = Array.from({ length: H }, () => Array.from({ length: W }, () => ({ mine: false, n: 0, open: false, flag: false })));
   boardEl.style.gridTemplateColumns = `repeat(${W}, var(--size))`;
@@ -206,6 +246,8 @@ function reset() {
   $("time").textContent = "000";
   $("mines").textContent = pad(M);
   $("msg").textContent = ""; $("msg").className = "";
+  showWhy(null);
+  layoutRules();
 }
 
 function neighbors(x, y) {
@@ -236,7 +278,9 @@ function paint(x, y) {
   const c = grid[y][x], el = cells[y][x];
   el.className = "c";
   el.textContent = "";
-  if (view === "finder" && !c.open && !c.flag && sure.has(y * W + x)) el.classList.add("sure");
+  const mk = view === "finder" && !c.open && !c.flag ? marks.get(y * W + x) : null;
+  if (mk) el.classList.add(mk.kind === "mine" ? "sure" : "safe");
+  if (whySet.has(y * W + x)) el.classList.add("why");
   if (hl && Math.max(Math.abs(hl[0] - x), Math.abs(hl[1] - y)) === 1) el.classList.add("adj");
   if (c.open) {
     el.classList.add("open");
@@ -253,46 +297,287 @@ function paint(x, y) {
   } else if (c.flag) el.classList.add("flag");
 }
 
-// tiles that must be mines, from the numbers alone: each opened number is a constraint (its closed
-// neighbours hold exactly n mines); a constraint that is full marks its tiles, and when one constraint's
-// tiles sit inside another's, the leftover tiles hold the difference
-function deduceMines() {
-  const cons = [];
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const c = grid[y][x];
-    if (!c.open || !c.n) continue;
-    const S = new Set();
-    for (const [a, b] of neighbors(x, y)) if (!grid[b][a].open) S.add(b * W + a);
-    if (S.size) cons.push({ S, need: c.n });
-  }
-  const mines = new Set(), safe = new Set();
-  for (let changed = true; changed;) {
-    changed = false;
-    for (const k of cons) {
-      for (const i of [...k.S]) {
-        if (mines.has(i)) { k.S.delete(i); k.need--; }
-        else if (safe.has(i)) k.S.delete(i);
+// ---- mine finder: six rules, each can be switched off ----
+const RULE_IDS = ["full", "satisfied", "subset", "overlap", "count", "enumerate"];
+let rules = { full: true, satisfied: true, subset: true, overlap: true, count: true, enumerate: true };
+try {
+  const saved = JSON.parse(localStorage.getItem("mfRules"));
+  if (saved) for (const id of RULE_IDS) if (typeof saved[id] === "boolean") rules[id] = saved[id];
+} catch (e) {}
+
+// Every opened number is a constraint: its closed neighbours hold exactly `need` mines.
+// cons: [{S: Set of closed tile ids, S0: the same at the start, need, n: number shown, src: id of that number}]
+// closed: ids of every closed tile, M: total mines. Returns {marks: Map(tile -> {kind, rule, info, nums}), capped}.
+function infer(cons, closed, M, on) {
+  const marks = new Map();
+  let capped = false;
+  const numsOf = t => cons.filter(k => k.S0.has(t)).map(k => k.src);
+  let relabel = null;
+  const mark = (t, kind, rule, info, nums) => {
+    if (marks.has(t)) return false;
+    if (relabel) { rule = relabel; info = {}; nums = numsOf(t); }
+    marks.set(t, { kind, rule, info, nums });
+    return true;
+  };
+  const snap = k => ({ n: k.n, need: k.need, size: k.S.size });
+
+  const simple = on => {
+    for (let changed = true; changed;) {
+      changed = false;
+      for (const k of cons) for (const t of [...k.S]) {
+        const m = marks.get(t);
+        if (m) { k.S.delete(t); if (m.kind === "mine") k.need--; }
       }
-      if (!k.S.size) continue;
-      if (k.need === 0) { k.S.forEach(i => safe.add(i)); changed = true; }
-      else if (k.need === k.S.size) { k.S.forEach(i => mines.add(i)); changed = true; }
+      const idx = new Map();
+      for (const k of cons) for (const t of k.S) { if (!idx.has(t)) idx.set(t, []); idx.get(t).push(k); }
+      for (const k of cons) {
+        if (!k.S.size) continue;
+        if (on.full && k.need === k.S.size) { for (const t of k.S) if (mark(t, "mine", "full", snap(k), [k.src])) changed = true; }
+        else if (on.satisfied && k.need === 0) { for (const t of k.S) if (mark(t, "safe", "satisfied", snap(k), [k.src])) changed = true; }
+      }
+      if (on.subset || on.overlap) for (const A of cons) {
+        if (!A.S.size) continue;
+        const seen = new Set();
+        for (const t of A.S) for (const B of idx.get(t)) {
+          if (B === A || seen.has(B)) continue;
+          seen.add(B);
+          let I = 0;
+          for (const u of A.S) if (B.S.has(u)) I++;
+          const aOnly = A.S.size - I, bOnly = B.S.size - I;
+          if (aOnly === 0 && bOnly > 0) {
+            if (!on.subset) continue;
+            const dn = B.need - A.need, info = { a: snap(A), b: snap(B), dn, size: bOnly };
+            const D = [...B.S].filter(u => !A.S.has(u));
+            if (dn === 0) { for (const u of D) if (mark(u, "safe", "subset", info, [A.src, B.src])) changed = true; }
+            else if (dn === bOnly) { for (const u of D) if (mark(u, "mine", "subset", info, [A.src, B.src])) changed = true; }
+          } else if (aOnly > 0 && bOnly > 0 && I > 0 && on.overlap && A.need - B.need === aOnly) {
+            const info = { a: snap(A), b: snap(B), size: aOnly };
+            for (const u of A.S) if (!B.S.has(u) && mark(u, "mine", "overlap", info, [A.src, B.src])) changed = true;
+            for (const u of B.S) if (!A.S.has(u) && mark(u, "safe", "overlap", info, [A.src, B.src])) changed = true;
+          }
+        }
+      }
+      if (on.count) {
+        let mc = 0;
+        const unk = [];
+        for (const t of closed) { const m = marks.get(t); if (!m) unk.push(t); else if (m.kind === "mine") mc++; }
+        const rem = M - mc, info = { rem, unknown: unk.length };
+        if (unk.length && rem === 0) { for (const t of unk) if (mark(t, "safe", "count", info, [])) changed = true; }
+        else if (unk.length && rem === unk.length) { for (const t of unk) if (mark(t, "mine", "count", info, [])) changed = true; }
+      }
     }
-    for (const A of cons) for (const B of cons) {
-      if (!A.S.size || A.S.size >= B.S.size || ![...A.S].every(i => B.S.has(i))) continue;
-      const D = [...B.S].filter(i => !A.S.has(i)), dn = B.need - A.need;
-      if (dn === 0) { for (const d of D) if (!safe.has(d)) { safe.add(d); changed = true; } }
-      else if (dn === D.length) { for (const d of D) if (!mines.has(d)) { mines.add(d); changed = true; } }
+  };
+
+  // lists every way to place mines on one linked group of tiles; capped so a huge open group cannot freeze the page
+  const NODE_CAP = 250000;
+  const solveGroup = (tiles, gcons) => {
+    const adj = new Map(tiles.map(t => [t, []]));
+    gcons.forEach((k, i) => { for (const t of k.S) adj.get(t).push(i); });
+    const order = [], pos = new Set([tiles[0]]), queue = [tiles[0]];
+    for (let q = 0; q < queue.length; q++) {
+      const t = queue[q];
+      order.push(t);
+      for (const i of adj.get(t)) for (const u of gcons[i].S) if (!pos.has(u)) { pos.add(u); queue.push(u); }
     }
-  }
-  return mines;
+    const n = order.length, need = gcons.map(k => k.need), cm = gcons.map(() => 0), cr = gcons.map(k => k.S.size);
+    const cl = order.map(t => adj.get(t));
+    const assign = new Uint8Array(n), feasible = new Map();
+    let nodes = 0, aborted = false;
+    const rec = (p, k) => {
+      if (aborted) return;
+      if (++nodes > NODE_CAP) { aborted = true; return; }
+      if (p === n) {
+        let f = feasible.get(k);
+        if (!f) { f = { mine: new Uint8Array(n), safe: new Uint8Array(n) }; feasible.set(k, f); }
+        for (let i = 0; i < n; i++) (assign[i] ? f.mine : f.safe)[i] = 1;
+        return;
+      }
+      for (let v = 0; v < 2; v++) {
+        let ok = true;
+        for (const c of cl[p]) { cm[c] += v; cr[c]--; }
+        for (const c of cl[p]) if (cm[c] > need[c] || cm[c] + cr[c] < need[c]) { ok = false; break; }
+        if (ok) { assign[p] = v; rec(p + 1, k + v); }
+        for (const c of cl[p]) { cm[c] -= v; cr[c]++; }
+      }
+    };
+    rec(0, 0);
+    if (aborted) {
+      capped = true;
+      feasible.clear();
+      for (let k = 0; k <= n; k++) feasible.set(k, { mine: new Uint8Array(n).fill(1), safe: new Uint8Array(n).fill(1) });
+    }
+    return { order, feasible };
+  };
+
+  const enumerate = () => {
+    // quick clean-up first so big open groups shrink before listing; anything it finds is still a certainty of this rule
+    relabel = "enumerate";
+    simple({ full: true, satisfied: true, subset: true, overlap: true, count: true });
+    relabel = null;
+    const live = cons.filter(k => k.S.size);
+    const parent = new Map();
+    const find = t => { while (parent.get(t) !== t) { parent.set(t, parent.get(parent.get(t))); t = parent.get(t); } return t; };
+    for (const k of live) for (const t of k.S) if (!parent.has(t)) parent.set(t, t);
+    for (const k of live) { const first = find([...k.S][0]); for (const t of k.S) parent.set(find(t), first); }
+    const groups = new Map();
+    for (const t of parent.keys()) { const r = find(t); if (!groups.has(r)) groups.set(r, { tiles: [], cons: [] }); groups.get(r).tiles.push(t); }
+    for (const k of live) groups.get(find([...k.S][0])).cons.push(k);
+    let known = 0, unmarked = 0;
+    for (const t of closed) { const m = marks.get(t); if (!m) unmarked++; else if (m.kind === "mine") known++; }
+    const R = M - known, I = unmarked - parent.size;
+    if (R < 0) return;
+    const solved = [...groups.values()].map(g => solveGroup(g.tiles, g.cons));
+    const zero = () => new Uint8Array(R + 1);
+    const step = (from, ks) => { const out = zero(); for (let s = 0; s <= R; s++) if (from[s]) for (const k of ks) if (s + k <= R) out[s + k] = 1; return out; };
+    const start = zero();
+    start[0] = 1;
+    const pre = [start];
+    solved.forEach((g, i) => pre.push(step(pre[i], [...g.feasible.keys()])));
+    const suf = new Array(solved.length + 1);
+    suf[solved.length] = start;
+    for (let i = solved.length - 1; i >= 0; i--) suf[i] = step(suf[i + 1], [...solved[i].feasible.keys()]);
+    const all = pre[solved.length];
+    // a group using k mines is possible if the rest of the board can supply a total that leaves 0..I mines for untouched tiles
+    solved.forEach((g, gi) => {
+      const others = zero();
+      for (let a = 0; a <= R; a++) if (pre[gi][a]) for (let b = 0; a + b <= R; b++) if (suf[gi + 1][b]) others[a + b] = 1;
+      const okK = new Map();
+      for (const k of g.feasible.keys()) {
+        let ok = false;
+        for (let s = 0; s <= R && !ok; s++) if (others[s] && k + s <= R && R - (k + s) <= I) ok = true;
+        okK.set(k, ok);
+      }
+      g.order.forEach((t, p) => {
+        let canMine = false, canSafe = false;
+        for (const [k, f] of g.feasible) if (okK.get(k)) { if (f.mine[p]) canMine = true; if (f.safe[p]) canSafe = true; }
+        if (canMine && !canSafe) mark(t, "mine", "enumerate", {}, numsOf(t));
+        else if (canSafe && !canMine) mark(t, "safe", "enumerate", {}, numsOf(t));
+      });
+    });
+    if (I > 0) {
+      let mineOk = false, safeOk = false;
+      for (let s = 0; s <= R; s++) if (all[s]) { const ki = R - s; if (ki <= I) { if (ki >= 1) mineOk = true; if (ki <= I - 1) safeOk = true; } }
+      for (const t of closed) if (!marks.has(t) && !parent.has(t)) {
+        if (mineOk && !safeOk) mark(t, "mine", "enumerate", {}, []);
+        else if (safeOk && !mineOk) mark(t, "safe", "enumerate", {}, []);
+      }
+    }
+  };
+
+  simple(on);
+  if (on.enumerate) enumerate();
+  return { marks, capped };
 }
 
-function refreshSure() {
-  const next = view === "finder" && !over ? deduceMines() : new Set(), old = sure;
-  sure = next;
+function solve() {
+  const cons = [], closed = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const c = grid[y][x];
+    if (!c.open) { closed.push(y * W + x); continue; }
+    if (!c.n) continue;
+    const S = new Set();
+    for (const [a, b] of neighbors(x, y)) if (!grid[b][a].open) S.add(b * W + a);
+    if (S.size) cons.push({ S, S0: new Set(S), need: c.n, n: c.n, src: y * W + x });
+  }
+  return infer(cons, closed, M, rules);
+}
+
+function refreshMarks() {
+  const next = view === "finder" && !over && started ? solve() : { marks: new Map(), capped: false }, old = marks;
+  marks = next.marks;
+  capped = next.capped;
+  $("capnote").hidden = !capped;
   if (over) return;
-  for (const k of new Set([...old, ...next]))
-    if (old.has(k) !== next.has(k)) paint(k % W, Math.floor(k / W));
+  for (const k of new Set([...old.keys(), ...marks.keys()])) {
+    const a = old.get(k), b = marks.get(k);
+    if (!a || !b || a.kind !== b.kind) paint(k % W, Math.floor(k / W));
+  }
+  showWhy(whyTile);
+}
+
+// ---- the rules panel ----
+const mg = (cols, str) => `<div class="mg" style="--cols:${cols}">` + str.split(" ").map(tk => {
+  if (tk === "_") return '<i class="mt gap"></i>';
+  if (tk === "#") return '<i class="mt"></i>';
+  if (tk === ".") return '<i class="mt o"></i>';
+  if (tk === "M") return '<i class="mt m"></i>';
+  if (tk === "S") return '<i class="mt s"></i>';
+  return `<i class="mt o n${tk}">${tk}</i>`;
+}).join("") + "</div>";
+
+const RULES = [
+  { id: "full", name: "Full count", level: "Beginner",
+    short: "A number with as many closed neighbours as its value: all mines.",
+    how: "Count a number's closed neighbours. If the count equals the number, every one of them is a mine.",
+    ex: mg(3, ". . . . 2 M . M .") },
+  { id: "satisfied", name: "Satisfied number", level: "Beginner",
+    short: "A number that already has all its mines: the rest are safe.",
+    how: "When a number already has its full count of mines around it, every other closed neighbour is safe. Dig them, or middle-click the number.",
+    ex: mg(3, ". . . M 1 S . . .") },
+  { id: "subset", name: "Subset (the 1-2 pattern)", level: "Intermediate",
+    short: "One number's tiles sit inside another's: the leftovers hold the difference.",
+    how: "If every closed neighbour of one number is also a neighbour of a bigger number, the bigger number's other tiles hold the difference between the two. In the picture the 1 covers two of the 2's three tiles, so the third tile holds the 2's other mine. If both numbers need the same amount, the leftover tiles are safe. The 1-2-1 and 1-2-2-1 patterns are this rule used twice.",
+    ex: mg(3, "1 2 _ # # M") },
+  { id: "overlap", name: "Overlap", level: "Advanced",
+    short: "Two numbers share tiles but neither fits inside the other.",
+    how: "Take two numbers that share some tiles. The extra mines one needs compared with the other can only sit in the tiles that only it touches. If that difference equals the number of its own tiles, they are all mines, and the other number's own tiles are safe. In the picture the first group needs 3 mines in 4 tiles and the second needs 1 in 3, so the two tiles only the first group touches are both mines and the last tile is safe.",
+    ex: '<div class="mg" style="--cols:5"><i class="mt m"></i><i class="mt m"></i><i class="mt"></i><i class="mt"></i><i class="mt s"></i><div class="bar a" style="grid-column:1/5">3 mines</div><div class="bar b" style="grid-column:3/6">1 mine</div></div>' },
+  { id: "count", name: "Mine count", level: "Intermediate",
+    short: "Use the mines-left counter on the tiles still unknown.",
+    how: "The counter at the top is information. If the mines left equal the unknown tiles, they are all mines. If no mines are left, every unknown tile is safe. It matters most near the end of a game.",
+    ex: mg(2, "M M") + '<div class="chip">Mines left 2 · unknown tiles 2</div>' },
+  { id: "enumerate", name: "Try every possibility", level: "Expert",
+    short: "List every valid arrangement. Always a mine, or never one: certain.",
+    how: "When nothing simple works, list every way to place the mines so that all the numbers and the total add up. A tile that is a mine in every arrangement is certain, and one that is a mine in none is certain safe. It also uses the total mine count. This catches everything above plus the hard cases. By hand: assume a tile is a mine, follow the numbers, and see whether one breaks.",
+    ex: '<div class="mg" style="--cols:4"><i class="mt m">a</i><i class="mt s">b</i><i class="mt s">c</i><i class="mt m">d</i></div><div class="chip">2 mines among a, b, d</div> <div class="chip">1 mine among a, c</div> <div class="chip">1 mine among c, d</div><p>If c were a mine, a and d could not be, and the first group would find only 1 mine instead of 2. So c is safe, which makes a and d the mines and b safe. None of the simpler rules can see this.</p>' },
+];
+
+function buildRules() {
+  const list = $("rulelist");
+  list.innerHTML = "";
+  RULES.forEach((r, i) => {
+    const el = document.createElement("div");
+    el.className = "rule";
+    el.innerHTML = `<label class="opt"><input type="checkbox" ${rules[r.id] ? "checked" : ""}><i></i>
+      <span>${i + 1} · ${r.name} <em>${r.level}</em><small>${r.short}</small></span></label>
+      <details><summary>How it works</summary><div class="lesson"><p>${r.how}</p>${r.ex}</div></details>`;
+    el.querySelector("input").onchange = e => {
+      rules[r.id] = e.target.checked;
+      try { localStorage.setItem("mfRules", JSON.stringify(rules)); } catch (err) {}
+      refreshMarks();
+    };
+    list.appendChild(el);
+  });
+}
+
+function layoutRules() {
+  const p = $("rules");
+  if (p.hidden) return;
+  const room = (document.documentElement.clientWidth - document.querySelector(".wrap").offsetWidth) / 2;
+  p.classList.toggle("side", room >= 344);
+}
+
+const pl = (n, w) => n + " " + w + (n === 1 ? "" : "s");
+function whyText(mk) {
+  const i = mk.info, mine = mk.kind === "mine";
+  switch (mk.rule) {
+    case "full": return `This ${i.n} still needs ${pl(i.need, "mine")} and has exactly ${pl(i.size, "closed tile")} left, so they are all mines.`;
+    case "satisfied": return `This ${i.n} already has all its mines accounted for, so its other closed neighbours are safe.`;
+    case "subset": return `The ${i.a.n} needs ${i.a.need} more and all its tiles also touch the ${i.b.n}, which needs ${i.b.need} more. That leaves ${pl(i.size, "tile")} holding ${i.dn} mine${i.dn === 1 ? "" : "s"}, ` + (mine ? "so they are all mines." : "so none of them is a mine.");
+    case "overlap": return `The ${i.a.n} (needs ${i.a.need}) and the ${i.b.n} (needs ${i.b.need}) share tiles. The ${i.a.n} needs ${i.size} more mines than the ${i.b.n} and has exactly ${pl(i.size, "tile")} only it touches, ` + (mine ? "so those tiles are all mines." : "so the other number's own tiles hold no mine.");
+    case "count": return mine ? `Only ${pl(i.rem, "mine")} left and exactly ${pl(i.unknown, "unknown tile")}, so they are all mines.` : "No mines are left, so every unknown tile is safe.";
+    default: return `In every arrangement of the mines that fits all the numbers and the total, this tile is ${mine ? "always" : "never"} a mine.`;
+  }
+}
+
+function showWhy(t) {
+  whyTile = t;
+  const mk = t && view === "finder" && !over ? marks.get(t[1] * W + t[0]) : null;
+  const old = whySet;
+  whySet = new Set(mk ? mk.nums : []);
+  if (!over) for (const k of new Set([...old, ...whySet])) if (old.has(k) !== whySet.has(k)) paint(k % W, Math.floor(k / W));
+  const r = mk && RULES.find(x => x.id === mk.rule);
+  $("why").innerHTML = mk ? `<b>${mk.kind === "mine" ? "Certain mine" : "Certain safe"} · ${r.name}</b><br>${whyText(mk)}` : "Hover a marked tile to see why it is certain.";
 }
 
 // opens tiles breadth first; each tile's delay grows with its distance so the clear ripples outward
@@ -306,7 +591,7 @@ function reveal(x, y) {
     paint(cx, cy);
     if (!c.n) for (const [nx, ny] of neighbors(cx, cy)) q.push([nx, ny, d + 1]);
   }
-  if (view === "finder") refreshSure();
+  if (view === "finder") refreshMarks();
 }
 
 function dig(x, y) {
@@ -408,9 +693,9 @@ boardEl.addEventListener("contextmenu", e => {
 boardEl.addEventListener("pointerover", e => {
   if (e.pointerType !== "mouse") return;
   const t = target(e);
-  if (t) { if (midHeld) midPos = t; setHover(t); hoverChord(); }
+  if (t) { if (midHeld) midPos = t; setHover(t); showWhy(t); hoverChord(); }
 });
-boardEl.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") setHover(null); });
+boardEl.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") { setHover(null); showWhy(null); } });
 boardEl.addEventListener("mousedown", e => {
   if (e.button !== 1) return;
   e.preventDefault();
@@ -453,7 +738,9 @@ document.addEventListener("keydown", e => { if (e.key === "r" || e.key === "R") 
 
 buildTabs();
 buildModes();
+buildRules();
 reset();
+window.addEventListener("resize", layoutRules);
 </script>
 </body>
 </html>
