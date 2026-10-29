@@ -490,7 +490,8 @@ function infer(cons, closed, M, on) {
             probs.set(t, Math.min(1, num / total));
           });
         });
-        if (I > 0) {
+        // tiles with no number next to them only get a chance once a single mine is left to place
+        if (I > 0 && R <= 1) {
           let ex = 0;
           for (let s = 0; s <= R; s++) ex += full[s] * binom[R - s] * (R - s);
           const pi = Math.min(1, ex / (I * total));
@@ -579,7 +580,7 @@ const RULES = [
     how: "List every layout that fits the numbers and the total. A tile that is always a mine is certain. One that is never a mine is safe. This catches everything above.",
     ex: '<div class="mg" style="--cols:4"><i class="mt m">a</i><i class="mt s">b</i><i class="mt s">c</i><i class="mt m">d</i></div><div class="chip">2 in a, b, d</div> <div class="chip">1 in a, c</div> <div class="chip">1 in c, d</div><p>If c were a mine, a and d could not be, and the 2 would get just 1. So c is safe.</p>' },
   { id: "chance", name: "Chances",
-    how: "When nothing is certain, every closed tile shows its chance of being a mine, from the numbers and the mine total. Safe tiles show 0%. Guess the lowest one.",
+    how: "Tiles next to a number show their chance of being a mine, from the numbers and the mine total. Safe tiles show 0%. Guess the lowest one.",
     ex: mg(3, "1 %50 %50") + '<div class="chip">The 1 splits its mine two ways</div>' },
 ];
 
