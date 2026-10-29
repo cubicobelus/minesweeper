@@ -85,6 +85,13 @@
   .c.safe:hover:not(.open) { background: #dcb73c; }
   .c.safe.adj:not(.open) { box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); }
   .c.safe::before { content: ""; width: 8px; height: 15px; border: solid rgba(24,16,0,.8); border-width: 0 3px 3px 0; transform: rotate(45deg) translate(-2px, -2px); }
+  .c.pct { font-family: var(--num); font-size: calc(var(--size) * .3); font-weight: 600; letter-spacing: -.03em; }
+  .c.pct.mid { color: rgba(245,245,242,.45); }
+  .c.pct.lo { color: rgba(212,175,55,.9); }
+  .c.pct.hi { color: rgba(226,120,110,.9); }
+  .c.safe.pct { color: #181000; }
+  .c.safe.pct::before { display: none; }
+  .mt.p { font-size: .58rem; letter-spacing: -.04em; color: var(--dim); }
   .c.why { box-shadow: inset 0 0 0 1px rgba(212,175,55,.6); }
   .box, .rule { border: 1px solid var(--line); border-radius: 12px; background: #101011; color: var(--dim); transition: border-color .15s, background .15s, color .15s; }
   .box { display: block; width: 100%; margin-bottom: 8px; text-align: left; font: inherit; font-size: .85rem; padding: 11px 12px; cursor: pointer; }
@@ -157,6 +164,7 @@
 <aside id="rules">
   <button id="rtab">Rules</button>
   <div class="rin">
+    <button class="box" id="allrules">All</button>
     <div id="rulelist"></div>
     <div class="sep"></div>
     <button class="box" id="autochord" title="Hovering a number acts like a middle-click">Hover chord</button>
@@ -171,7 +179,7 @@ const MODES = {
   Medium: { w: 16, h: 16, m: 40 },
   Hard:   { w: 30, h: 16, m: 99 },
 };
-let view = "classic", marks = new Map(), capped = false, whySet = new Set(), whyTile = null, experimental = false, autoChord = false, autoAll = false, sweeping = false, bests = {}, hover = null, hl = null, midPos = null, midHeld = false, mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
+let view = "classic", marks = new Map(), chances = new Map(), capped = false, whySet = new Set(), whyTile = null, experimental = false, autoChord = false, autoAll = false, sweeping = false, bests = {}, hover = null, hl = null, midPos = null, midHeld = false, mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
 
 const $ = id => document.getElementById(id);
 const boardEl = $("board");
@@ -213,7 +221,7 @@ function buildModes() {
 function reset() {
   ({ w: W, h: H, m: M } = MODES[mode]);
   clearInterval(timer);
-  hover = hl = midPos = null; midHeld = false; marks = new Map(); capped = false; whySet = new Set(); whyTile = null;
+  hover = hl = midPos = null; midHeld = false; marks = new Map(); chances = new Map(); capped = false; whySet = new Set(); whyTile = null;
   secs = 0; started = false; over = false; flags = 0; revealed = 0;
   grid = Array.from({ length: H }, () => Array.from({ length: W }, () => ({ mine: false, n: 0, open: false, flag: false })));
   boardEl.style.gridTemplateColumns = `repeat(${W}, var(--size))`;
@@ -266,6 +274,8 @@ function paint(x, y) {
   el.textContent = "";
   const mk = !c.open && !c.flag ? marks.get(y * W + x) : null;
   if (mk) el.classList.add(mk.kind === "mine" ? "sure" : "safe");
+  const pr = rules.chance && !c.open && !c.flag && !(mk && mk.kind === "mine") ? chances.get(y * W + x) : undefined;
+  if (pr !== undefined) { el.textContent = pctText(pr); el.classList.add("pct", pr < 0.15 ? "lo" : pr >= 0.6 ? "hi" : "mid"); }
   if (whySet.has(y * W + x)) el.classList.add("why");
   if (hl && Math.max(Math.abs(hl[0] - x), Math.abs(hl[1] - y)) === 1) el.classList.add("adj");
   if (c.open) {
@@ -284,8 +294,8 @@ function paint(x, y) {
 }
 
 // ---- mine finder: six rules, each can be switched off ----
-const RULE_IDS = ["full", "satisfied", "subset", "overlap", "count", "enumerate"];
-let rules = { full: false, satisfied: false, subset: false, overlap: false, count: false, enumerate: false };
+const RULE_IDS = ["full", "satisfied", "subset", "overlap", "count", "enumerate", "chance"];
+let rules = { full: false, satisfied: false, subset: false, overlap: false, count: false, enumerate: false, chance: false };
 try {
   const saved = JSON.parse(localStorage.getItem("mfRules2"));
   if (saved) for (const id of RULE_IDS) if (typeof saved[id] === "boolean") rules[id] = saved[id];
@@ -296,7 +306,7 @@ try {
 // closed: ids of every closed tile, M: total mines. Returns {marks: Map(tile -> {kind, rule, info, nums}), capped}.
 function infer(cons, closed, M, on) {
   const marks = new Map();
-  let capped = false;
+  let capped = false, probs = null;
   const numsOf = t => cons.filter(k => k.S0.has(t)).map(k => k.src);
   let relabel = null;
   const mark = (t, kind, rule, info, nums) => {
@@ -374,8 +384,9 @@ function infer(cons, closed, M, on) {
       if (++nodes > NODE_CAP) { aborted = true; return; }
       if (p === n) {
         let f = feasible.get(k);
-        if (!f) { f = { mine: new Uint8Array(n), safe: new Uint8Array(n) }; feasible.set(k, f); }
-        for (let i = 0; i < n; i++) (assign[i] ? f.mine : f.safe)[i] = 1;
+        if (!f) { f = { mine: new Uint8Array(n), safe: new Uint8Array(n), count: 0, mc: new Float64Array(n) }; feasible.set(k, f); }
+        f.count++;
+        for (let i = 0; i < n; i++) { if (assign[i]) { f.mine[i] = 1; f.mc[i]++; } else f.safe[i] = 1; }
         return;
       }
       for (let v = 0; v < 2; v++) {
@@ -448,14 +459,53 @@ function infer(cons, closed, M, on) {
         else if (safeOk && !mineOk) mark(t, "safe", "enumerate", {}, []);
       }
     }
+    if (on.chance && !capped) {
+      const binom = new Float64Array(R + 1);
+      binom[0] = 1;
+      for (let m = 0; m < R; m++) binom[m + 1] = m + 1 > I ? 0 : binom[m] * (I - m) / (m + 1);
+      const poly = g => { const a = new Float64Array(R + 1); for (const [k, f] of g.feasible) if (k <= R) a[k] = f.count; return a; };
+      const conv = (a, b) => {
+        const out = new Float64Array(R + 1);
+        for (let i = 0; i <= R; i++) if (a[i]) for (let j = 0; i + j <= R; j++) if (b[j]) out[i + j] += a[i] * b[j];
+        return out;
+      };
+      const one = new Float64Array(R + 1);
+      one[0] = 1;
+      const Pf = [one];
+      solved.forEach((g, i) => Pf.push(conv(Pf[i], poly(g))));
+      const Qf = new Array(solved.length + 1);
+      Qf[solved.length] = one;
+      for (let i = solved.length - 1; i >= 0; i--) Qf[i] = conv(Qf[i + 1], poly(solved[i]));
+      const full = Pf[solved.length];
+      let total = 0;
+      for (let s = 0; s <= R; s++) total += full[s] * binom[R - s];
+      if (total > 0 && isFinite(total)) {
+        probs = new Map();
+        solved.forEach((g, gi) => {
+          const D = conv(Pf[gi], Qf[gi + 1]), Wk = new Map();
+          for (const k of g.feasible.keys()) { let w = 0; for (let s = 0; s + k <= R; s++) w += D[s] * binom[R - k - s]; Wk.set(k, w); }
+          g.order.forEach((t, p) => {
+            let num = 0;
+            for (const [k, f] of g.feasible) num += f.mc[p] * Wk.get(k);
+            probs.set(t, Math.min(1, num / total));
+          });
+        });
+        if (I > 0) {
+          let ex = 0;
+          for (let s = 0; s <= R; s++) ex += full[s] * binom[R - s] * (R - s);
+          const pi = Math.min(1, ex / (I * total));
+          for (const t of closed) if (!marks.has(t) && !parent.has(t)) probs.set(t, pi);
+        }
+      } else capped = true;
+    }
   };
 
   simple(on);
   if (on.enumerate) enumerate();
-  return { marks, capped };
+  return { marks, capped, probs };
 }
 
-function solve() {
+function buildCons() {
   const cons = [], closed = [];
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const c = grid[y][x];
@@ -465,18 +515,35 @@ function solve() {
     for (const [a, b] of neighbors(x, y)) if (!grid[b][a].open) S.add(b * W + a);
     if (S.size) cons.push({ S, S0: new Set(S), need: c.n, n: c.n, src: y * W + x });
   }
-  return infer(cons, closed, M, rules);
+  return { cons, closed };
+}
+
+function solve() {
+  const a = buildCons(), res = infer(a.cons, a.closed, M, { ...rules, chance: false });
+  res.probs = new Map();
+  if (rules.chance) {
+    // chances come from every layout, whichever rules are switched on
+    const b = buildCons(), r2 = infer(b.cons, b.closed, M, { full: true, satisfied: true, subset: true, overlap: true, count: true, enumerate: true, chance: true });
+    if (r2.probs) {
+      for (const [t, m] of r2.marks) r2.probs.set(t, m.kind === "mine" ? 1 : 0);
+      res.probs = r2.probs;
+    } else res.capped = true;
+    if (r2.capped) res.capped = true;
+  }
+  return res;
 }
 
 function refreshMarks() {
-  const next = !over && started && Object.values(rules).some(Boolean) ? solve() : { marks: new Map(), capped: false }, old = marks;
+  const next = !over && started && Object.values(rules).some(Boolean) ? solve() : { marks: new Map(), capped: false, probs: new Map() };
+  const old = marks, oldP = chances;
   marks = next.marks;
+  chances = next.probs;
   capped = next.capped;
   $("capnote").hidden = !capped;
   if (over) return;
-  for (const k of new Set([...old.keys(), ...marks.keys()])) {
-    const a = old.get(k), b = marks.get(k);
-    if (!a || !b || a.kind !== b.kind) paint(k % W, Math.floor(k / W));
+  for (const k of new Set([...old.keys(), ...marks.keys(), ...oldP.keys(), ...chances.keys()])) {
+    const a = old.get(k), b = marks.get(k), pa = oldP.get(k), pb = chances.get(k);
+    if (!a !== !b || (a && a.kind !== b.kind) || pa !== pb) paint(k % W, Math.floor(k / W));
   }
   showWhy(whyTile);
 }
@@ -488,6 +555,7 @@ const mg = (cols, str) => `<div class="mg" style="--cols:${cols}">` + str.split(
   if (tk === ".") return '<i class="mt o"></i>';
   if (tk === "M") return '<i class="mt m"></i>';
   if (tk === "S") return '<i class="mt s"></i>';
+  if (tk[0] === "%") return `<i class="mt p">${tk.slice(1)}%</i>`;
   return `<i class="mt o n${tk}">${tk}</i>`;
 }).join("") + "</div>";
 
@@ -510,28 +578,53 @@ const RULES = [
   { id: "enumerate", name: "Every layout",
     how: "List every layout that fits the numbers and the total. A tile that is always a mine is certain. One that is never a mine is safe. This catches everything above.",
     ex: '<div class="mg" style="--cols:4"><i class="mt m">a</i><i class="mt s">b</i><i class="mt s">c</i><i class="mt m">d</i></div><div class="chip">2 in a, b, d</div> <div class="chip">1 in a, c</div> <div class="chip">1 in c, d</div><p>If c were a mine, a and d could not be, and the 2 would get just 1. So c is safe.</p>' },
+  { id: "chance", name: "Chances",
+    how: "When nothing is certain, every closed tile shows its chance of being a mine, from the numbers and the mine total. Safe tiles show 0%. Guess the lowest one.",
+    ex: mg(3, "1 %50 %50") + '<div class="chip">The 1 splits its mine two ways</div>' },
 ];
+
+const ruleEls = {};
+
+function syncRules() {
+  for (const r of RULES) ruleEls[r.id].classList.toggle("on", rules[r.id]);
+  $("allrules").classList.toggle("on", RULES.every(r => rules[r.id]));
+}
+
+function saveRules() {
+  try { localStorage.setItem("mfRules2", JSON.stringify(rules)); } catch (err) {}
+  syncRules();
+  refreshMarks();
+}
 
 function buildRules() {
   const list = $("rulelist");
   list.innerHTML = "";
   RULES.forEach((r, i) => {
     const el = document.createElement("div");
-    el.className = "rule" + (rules[r.id] ? " on" : "");
+    el.className = "rule";
     el.innerHTML = `<button class="rbox"><b>${i + 1}</b><span>${r.name}</span></button><button class="how">How it works</button>
       <div class="lesson" hidden><p>${r.how}</p>${r.ex}</div>`;
     el.querySelector(".how").onclick = () => { const l = el.querySelector(".lesson"); l.hidden = !l.hidden; };
-    el.querySelector(".rbox").onclick = () => {
-      rules[r.id] = !rules[r.id];
-      el.classList.toggle("on", rules[r.id]);
-      try { localStorage.setItem("mfRules2", JSON.stringify(rules)); } catch (err) {}
-      refreshMarks();
-    };
+    el.querySelector(".rbox").onclick = () => { rules[r.id] = !rules[r.id]; saveRules(); };
+    ruleEls[r.id] = el;
     list.appendChild(el);
   });
+  $("allrules").onclick = () => {
+    const on = !RULES.every(r => rules[r.id]);
+    for (const r of RULES) rules[r.id] = on;
+    saveRules();
+  };
+  syncRules();
 }
 
 function setDrawer(open) { $("rules").classList.toggle("open", open); }
+
+function pctText(p) {
+  if (p < 1e-9) return "0%";
+  if (p > 1 - 1e-9) return "100%";
+  const r = Math.round(p * 100);
+  return r === 0 ? "<1%" : r === 100 ? ">99%" : r + "%";
+}
 
 const pl = (n, w) => n + " " + w + (n === 1 ? "" : "s");
 function whyText(mk) {
