@@ -6,17 +6,17 @@
 <title>Minesweeper</title>
 <style>
   :root {
-    --bg: #07120d;
-    --surface: #0d1d16;
-    --cell: #2c5a46;
+    --bg: #060607;
+    --surface: #111112;
+    --cell: #2b2b2f;
+    --cell-hi: #3a3a3f;
+    --cell-hover: #46464c;
     --open: #000;
-    --cell-hover: #37705a;
-    --line: #17352a;
+    --line: #26262a;
     --text: #f5f5f2;
-    --dim: #7d8b83;
+    --dim: #8a8a86;
     --accent: #d4af37;
     --red: #c23b32;
-    --green: #4caf6b;
     --num: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", monospace;
     --size: 36px;
   }
@@ -32,8 +32,7 @@
   }
   .wrap { position: relative; display: flex; flex-direction: column; align-items: stretch; max-width: 100%; }
   h1 { text-align: center; margin: 0 0 20px; font-size: 1.05rem; font-weight: 600; letter-spacing: -.01em; }
-  h1 span { color: var(--dim); font-weight: 500; }
-  .bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
   .tabs { display: flex; justify-content: center; gap: 22px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
   .tabs button { font: inherit; font-size: .85rem; font-weight: 500; color: var(--dim); background: none; border: 0; padding: 0 0 10px; margin-bottom: -1px; cursor: pointer; border-bottom: 2px solid transparent; transition: color .15s; }
   .tabs button:hover { color: var(--text); }
@@ -44,7 +43,7 @@
     border: 0; border-radius: 7px; padding: 6px 14px; cursor: pointer; transition: color .15s, background .15s;
   }
   .modes button:hover { color: var(--text); }
-  .modes button.on { color: var(--text); background: var(--cell-hover); }
+  .modes button.on { color: var(--text); background: var(--cell-hi); }
   .stats { display: flex; align-items: center; gap: 18px; font-size: .85rem; color: var(--dim); font-variant-numeric: tabular-nums; }
   .stats b { color: var(--text); font-weight: 600; margin-left: 6px; }
   #face {
@@ -58,24 +57,16 @@
     position: relative; width: var(--size); height: var(--size); border-radius: 7px;
     display: flex; align-items: center; justify-content: center;
     font-family: var(--num); font-weight: 700; font-size: calc(var(--size) * .5); font-variant-numeric: tabular-nums;
-    background: var(--cell); box-shadow: inset 0 1px 0 rgba(255,255,255,.1), inset 0 -2px 0 rgba(0,0,0,.18); cursor: pointer; transition: background .12s;
+    background: linear-gradient(160deg, var(--cell-hi), var(--cell)); box-shadow: inset 0 1px 0 rgba(255,255,255,.1), inset 0 -2px 0 rgba(0,0,0,.3); cursor: pointer; transition: background .12s, box-shadow .12s;
   }
-  .c:hover:not(.open) { background: var(--cell-hover); }
+  .c:hover:not(.open) { background: linear-gradient(160deg, var(--cell-hover), var(--cell-hi)); box-shadow: inset 0 0 0 1px rgba(212,175,55,.6); }
   .c.open { background: var(--open); box-shadow: none; cursor: default; }
-  .c.adj:not(.open) { background: #4d683f; box-shadow: inset 0 0 0 1px rgba(212,175,55,.45); }
+  .c.adj:not(.open) { background: #4a4224; box-shadow: inset 0 0 0 1px rgba(212,175,55,.45); }
   .c.adj.open { background: #17140a; }
   .settings { position: relative; align-self: center; margin-top: 14px; }
   #gear { font: inherit; font-size: .78rem; color: var(--dim); background: none; border: 0; padding: 0; cursor: pointer; }
   #gear:hover { color: var(--text); }
   #panel { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: min(320px, 86vw); z-index: 5; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; box-shadow: 0 12px 32px rgba(0,0,0,.6); }
-  .opt { display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: .85rem; }
-  .opt small { display: block; color: var(--dim); font-size: .72rem; margin-top: 2px; }
-  .opt input { position: absolute; opacity: 0; pointer-events: none; }
-  .opt i { position: relative; flex: none; width: 34px; height: 20px; border-radius: 10px; background: var(--cell-hover); transition: background .15s; }
-  .opt i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--text); transition: transform .15s; }
-  .opt input:checked + i { background: var(--accent); }
-  .opt input:checked + i::after { transform: translateX(14px); background: var(--bg); }
-  .opt input:focus-visible + i { outline: 2px solid var(--accent); outline-offset: 2px; }
   .c.flag, .c.flag:hover, .c.flag.adj { background: #000; box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
   .c.flag.adj { box-shadow: inset 0 0 0 1px rgba(212,175,55,.45); }
   .c.flag::before {
@@ -94,21 +85,29 @@
   .c.sure, .c.sure:hover:not(.open), .c.sure.adj:not(.open) { background: #8c2f2a; box-shadow: inset 0 1px 0 rgba(255,255,255,.12), inset 0 -2px 0 rgba(0,0,0,.2); }
   .c.sure:hover:not(.open) { background: #a33a33; }
   .c.sure.adj:not(.open) { box-shadow: inset 0 0 0 1px rgba(212,175,55,.45); }
-  .c.safe, .c.safe:hover:not(.open), .c.safe.adj:not(.open) { background: #3f9a72; box-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -2px 0 rgba(0,0,0,.2); }
-  .c.safe:hover:not(.open) { background: #4cae83; }
+  .c.safe, .c.safe:hover:not(.open), .c.safe.adj:not(.open) { background: #c9a227; box-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -2px 0 rgba(0,0,0,.2); }
+  .c.safe:hover:not(.open) { background: #dcb73c; }
   .c.safe.adj:not(.open) { box-shadow: inset 0 0 0 1px rgba(212,175,55,.45); }
-  .c.safe::before { content: ""; width: 8px; height: 15px; border: solid rgba(2,20,12,.7); border-width: 0 3px 3px 0; transform: rotate(45deg) translate(-2px, -2px); }
+  .c.safe::before { content: ""; width: 8px; height: 15px; border: solid rgba(24,16,0,.8); border-width: 0 3px 3px 0; transform: rotate(45deg) translate(-2px, -2px); }
   .c.why { box-shadow: inset 0 0 0 2px var(--accent); }
-  #rules { align-self: center; width: 0; min-width: min(100%, 560px); margin-top: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; font-size: .85rem; }
-  #rules.side { position: absolute; left: calc(100% + 24px); top: 56px; width: 310px; min-width: 0; margin-top: 0; align-self: auto; }
-  #rules h2 { margin: 0 0 4px; font-size: .95rem; font-weight: 600; }
-  #rules p.lead { margin: 0 0 10px; color: var(--dim); font-size: .75rem; line-height: 1.5; }
-  .rule { padding: 9px 0; border-top: 1px solid var(--line); }
-  .rule .opt { font-size: .82rem; align-items: flex-start; }
-  .rule .opt i { margin-top: 2px; }
-  .rule em { font-style: normal; font-size: .62rem; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin-left: 6px; }
-  .rule details { margin: 6px 0 0 46px; }
-  .rule summary { cursor: pointer; font-size: .75rem; color: var(--dim); }
+  .box, .rule { border: 1px solid var(--line); border-radius: 12px; background: #101011; color: var(--dim); transition: border-color .15s, background .15s, color .15s; }
+  .box { display: block; width: 100%; text-align: left; font: inherit; font-size: .82rem; padding: 10px 12px; cursor: pointer; }
+  .box small { display: block; margin-top: 2px; font-size: .7rem; color: var(--dim); }
+  .box.on, .rule.on { border-color: rgba(212,175,55,.7); background: rgba(212,175,55,.09); color: var(--text); }
+  #panel .box { min-width: 200px; }
+  #rules { position: fixed; z-index: 20; left: 0; top: 0; bottom: 0; width: min(330px, 88vw); background: #09090a; border-right: 1px solid var(--line); transform: translateX(-100%); transition: transform .25s ease; }
+  #rules.open { transform: none; box-shadow: 12px 0 40px rgba(0,0,0,.6); }
+  #rtab { position: absolute; left: 100%; top: 110px; writing-mode: vertical-rl; padding: 16px 8px; font: inherit; font-size: .72rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); background: #09090a; border: 1px solid var(--line); border-left: 0; border-radius: 0 10px 10px 0; cursor: pointer; }
+  #rtab:hover { color: #000; background: var(--accent); }
+  .rin { height: 100%; overflow: auto; padding: 18px 14px 40px; }
+  .lead { margin: 0 0 12px; color: var(--dim); font-size: .74rem; }
+  .rule { margin-bottom: 8px; }
+  .rbox { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 12px; background: none; border: 0; color: inherit; font: inherit; font-size: .85rem; text-align: left; cursor: pointer; }
+  .rbox b { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; background: #232326; color: var(--dim); font-size: .72rem; }
+  .rule.on .rbox b { background: var(--accent); color: #000; }
+  .rbox em { margin-left: auto; font-style: normal; font-size: .6rem; text-transform: uppercase; letter-spacing: .08em; opacity: .7; }
+  .rule details { padding: 0 12px 10px 42px; }
+  .rule summary { cursor: pointer; font-size: .74rem; color: var(--dim); }
   .rule summary:hover { color: var(--text); }
   .lesson { color: var(--dim); font-size: .76rem; line-height: 1.5; }
   .lesson p { margin: 8px 0; }
@@ -116,15 +115,15 @@
   .mt { width: 24px; height: 24px; border-radius: 6px; background: var(--cell); display: flex; align-items: center; justify-content: center; font: 700 .78rem var(--num); font-style: normal; }
   .mt.o { background: #000; }
   .mt.m { background: #8c2f2a; color: #fff; }
-  .mt.s { background: #3f9a72; color: #04140c; }
+  .mt.s { background: #c9a227; color: #181000; }
   .mt.gap { visibility: hidden; }
-  .bar { height: 16px; border-radius: 8px; font-size: .62rem; line-height: 16px; text-align: center; color: #000; font-weight: 600; }
-  .bar.a { background: var(--accent); }
-  .bar.b { background: #7fb9e8; }
+  .eb { height: 16px; border-radius: 8px; font-size: .62rem; line-height: 16px; text-align: center; color: #000; font-weight: 600; }
+  .eb.a { background: var(--accent); }
+  .eb.b { background: #9a9a95; }
   .chip { display: inline-block; margin-top: 6px; padding: 3px 8px; border-radius: 8px; background: #000; color: var(--text); font-size: .7rem; }
-  #why { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: #000; color: var(--dim); font-size: .76rem; line-height: 1.5; min-height: 4.4em; }
-  #why b { color: var(--text); }
-  #capnote { margin-top: 8px; color: var(--accent); font-size: .72rem; }
+  #capnote { margin-top: 10px; color: var(--accent); font-size: .72rem; }
+  #why { width: 0; min-width: 100%; min-height: 2.9em; margin-top: 8px; text-align: center; color: var(--dim); font-size: .78rem; line-height: 1.45; }
+  #why b { color: var(--text); font-weight: 600; }
   .c.mine::before { animation: dot .3s ease-out backwards; animation-delay: var(--md, 0ms); }
   @media (prefers-reduced-motion: reduce) { .c.anim, .c.flag::before, .c.flag::after, .c.mine::before { animation: none; } }
   .c.mine::before { content: ""; width: 38%; height: 38%; border-radius: 50%; background: var(--red); }
@@ -132,13 +131,13 @@
   .c.wrong::before { content: ""; width: 38%; height: 2px; background: var(--red); transform: rotate(-45deg); }
   .c.wrong::after { content: ""; position: absolute; width: 38%; height: 2px; background: var(--red); transform: rotate(45deg); }
   .c.wrong { background: rgba(194,59,50,.12); }
-  .c.win.flag::before { border-left-color: var(--green); }
-  .c.win.flag::after { background: var(--green); }
+  .c.win.flag::before { border-left-color: #f0d36a; }
+  .c.win.flag::after { background: #f0d36a; }
   .n1 { color: #6ea8ff; } .n2 { color: #5fd39a; } .n3 { color: #ff7a7a; } .n4 { color: #b394ff; }
   .n0 { color: #3a3a36; } .neg { color: var(--red); }
   .n5 { color: #ffb86b; } .n6 { color: #5fd3d3; } .n7 { color: #e5e5ea; } .n8 { color: #8a8a96; }
   #msg { text-align: center; height: 1.4em; margin-top: 14px; font-size: .85rem; font-weight: 500; color: var(--dim); }
-  #msg.win { color: var(--green); }
+  #msg.win { color: var(--accent); }
   #msg.lose { color: var(--red); }
   .hint { width: 0; min-width: 100%; text-align: center; margin-top: 4px; color: var(--dim); font-size: .75rem; opacity: .7; }
   @media (max-width: 520px) { :root { --size: 30px; } }
@@ -148,7 +147,7 @@
 <div class="wrap">
   <h1>minesweeper</h1>
   <div class="tabs" id="tabs"></div>
-  <div class="bar">
+  <div class="top">
     <div class="modes" id="modes"></div>
     <div class="stats">
       <span>Mines<b id="mines">010</b></span>
@@ -158,23 +157,24 @@
   </div>
   <div class="scroller"><div id="board"></div></div>
   <div id="msg"></div>
+  <div id="why" hidden></div>
   <div class="settings">
     <button id="gear">Settings</button>
     <div id="panel" hidden>
-      <label class="opt"><input type="checkbox" id="autochord"><i></i>
-        <span>Hover chord<small>Acts like the middle button is always held: hovering highlights the tiles around it and clears a satisfied number.</small></span></label>
+      <button class="box" id="autochord"><b>Hover chord</b><small>Hovering works like a middle-click</small></button>
     </div>
   </div>
-  <div class="hint" id="exp" hidden>Experimental: placing a flag subtracts 1 from every number around it. A 0 means that number is satisfied.</div>
-  <div class="hint">Click to dig. Right-click or long-press to flag. Middle-click a number to clear around it (hold to highlight around any tile). R restarts.</div>
-  <aside id="rules" hidden>
-    <h2>Rules</h2>
-    <p class="lead">Switch rules on or off to practise them. Red tiles are certain mines and green ticks are certain safe tiles. With every rule on, you see everything that can be known from the board.</p>
-    <div id="rulelist"></div>
-    <div id="why"></div>
-    <div id="capnote" hidden>Some groups of tiles were too tangled to list every possibility, so rule 6 skipped them there.</div>
-  </aside>
+  <div class="hint" id="exp" hidden></div>
+  <div class="hint">Click dig · Right-click flag · Middle-click clear · R restart</div>
 </div>
+<aside id="rules" hidden>
+  <button id="rtab">Rules</button>
+  <div class="rin">
+    <p class="lead">Click a rule to turn it on or off.</p>
+    <div id="rulelist"></div>
+    <div id="capnote" hidden>Rule 6 skipped some tangled areas.</div>
+  </div>
+</aside>
 
 <script>
 const MODES = {
@@ -191,8 +191,8 @@ function pad(n) { return String(Math.max(0, Math.min(999, n))).padStart(3, "0");
 
 const VIEWS = [
   ["classic", "Classic", ""],
-  ["experimental", "Experimental", "Experimental: placing a flag subtracts 1 from every number around it. A 0 means that number is satisfied."],
-  ["finder", "Mine finder", "Mine finder: red tiles are certain mines and green ticks are certain safe tiles, worked out from the numbers. Flags are ignored. Choose the rules it may use in the panel."],
+  ["experimental", "Experimental", "Flags subtract from nearby numbers."],
+  ["finder", "Mine finder", "Red is a mine. Gold tick is safe."],
 ];
 
 function buildTabs() {
@@ -206,7 +206,8 @@ function buildTabs() {
       $("exp").hidden = !hint; $("exp").textContent = hint;
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (grid[y][x].open) paint(x, y);
       $("rules").hidden = id !== "finder";
-      layoutRules();
+      $("why").hidden = id !== "finder";
+      if (id !== "finder") setDrawer(false);
       refreshMarks();
     };
     $("tabs").appendChild(b);
@@ -247,7 +248,6 @@ function reset() {
   $("mines").textContent = pad(M);
   $("msg").textContent = ""; $("msg").className = "";
   showWhy(null);
-  layoutRules();
 }
 
 function neighbors(x, y) {
@@ -507,29 +507,23 @@ const mg = (cols, str) => `<div class="mg" style="--cols:${cols}">` + str.split(
 
 const RULES = [
   { id: "full", name: "Full count", level: "Beginner",
-    short: "A number with as many closed neighbours as its value: all mines.",
-    how: "Count a number's closed neighbours. If the count equals the number, every one of them is a mine.",
+    how: "If a number's closed tiles equal the number, they are all mines.",
     ex: mg(3, ". . . . 2 M . M .") },
-  { id: "satisfied", name: "Satisfied number", level: "Beginner",
-    short: "A number that already has all its mines: the rest are safe.",
-    how: "When a number already has its full count of mines around it, every other closed neighbour is safe. Dig them, or middle-click the number.",
+  { id: "satisfied", name: "Satisfied", level: "Beginner",
+    how: "If a number already has its mines, its other closed tiles are safe.",
     ex: mg(3, ". . . M 1 S . . .") },
-  { id: "subset", name: "Subset (the 1-2 pattern)", level: "Intermediate",
-    short: "One number's tiles sit inside another's: the leftovers hold the difference.",
-    how: "If every closed neighbour of one number is also a neighbour of a bigger number, the bigger number's other tiles hold the difference between the two. In the picture the 1 covers two of the 2's three tiles, so the third tile holds the 2's other mine. If both numbers need the same amount, the leftover tiles are safe. The 1-2-1 and 1-2-2-1 patterns are this rule used twice.",
+  { id: "subset", name: "Subset", level: "Medium",
+    how: "One number's tiles sit inside another's. The leftover tiles hold the difference: all mines, or none if it is zero. Here the 1 sits inside the 2, so the last tile is a mine.",
     ex: mg(3, "1 2 _ # # M") },
   { id: "overlap", name: "Overlap", level: "Advanced",
-    short: "Two numbers share tiles but neither fits inside the other.",
-    how: "Take two numbers that share some tiles. The extra mines one needs compared with the other can only sit in the tiles that only it touches. If that difference equals the number of its own tiles, they are all mines, and the other number's own tiles are safe. In the picture the first group needs 3 mines in 4 tiles and the second needs 1 in 3, so the two tiles only the first group touches are both mines and the last tile is safe.",
-    ex: '<div class="mg" style="--cols:5"><i class="mt m"></i><i class="mt m"></i><i class="mt"></i><i class="mt"></i><i class="mt s"></i><div class="bar a" style="grid-column:1/5">3 mines</div><div class="bar b" style="grid-column:3/6">1 mine</div></div>' },
-  { id: "count", name: "Mine count", level: "Intermediate",
-    short: "Use the mines-left counter on the tiles still unknown.",
-    how: "The counter at the top is information. If the mines left equal the unknown tiles, they are all mines. If no mines are left, every unknown tile is safe. It matters most near the end of a game.",
-    ex: mg(2, "M M") + '<div class="chip">Mines left 2 · unknown tiles 2</div>' },
-  { id: "enumerate", name: "Try every possibility", level: "Expert",
-    short: "List every valid arrangement. Always a mine, or never one: certain.",
-    how: "When nothing simple works, list every way to place the mines so that all the numbers and the total add up. A tile that is a mine in every arrangement is certain, and one that is a mine in none is certain safe. It also uses the total mine count. This catches everything above plus the hard cases. By hand: assume a tile is a mine, follow the numbers, and see whether one breaks.",
-    ex: '<div class="mg" style="--cols:4"><i class="mt m">a</i><i class="mt s">b</i><i class="mt s">c</i><i class="mt m">d</i></div><div class="chip">2 mines among a, b, d</div> <div class="chip">1 mine among a, c</div> <div class="chip">1 mine among c, d</div><p>If c were a mine, a and d could not be, and the first group would find only 1 mine instead of 2. So c is safe, which makes a and d the mines and b safe. None of the simpler rules can see this.</p>' },
+    how: "Two numbers share tiles. If one needs as many more mines as it has tiles of its own, those are all mines and the other's own tiles are safe. Here 3 in 4 tiles and 1 in 3 forces the first two.",
+    ex: '<div class="mg" style="--cols:5"><i class="mt m"></i><i class="mt m"></i><i class="mt"></i><i class="mt"></i><i class="mt s"></i><div class="eb a" style="grid-column:1/5">3 mines</div><div class="eb b" style="grid-column:3/6">1 mine</div></div>' },
+  { id: "count", name: "Mine count", level: "Medium",
+    how: "If the mines left equal the unknown tiles, they are all mines. If none are left, they are all safe.",
+    ex: mg(2, "M M") + '<div class="chip">2 mines left, 2 tiles</div>' },
+  { id: "enumerate", name: "Every layout", level: "Expert",
+    how: "List every layout that fits the numbers and the total. A tile that is always a mine is certain. One that is never a mine is safe. This catches everything above.",
+    ex: '<div class="mg" style="--cols:4"><i class="mt m">a</i><i class="mt s">b</i><i class="mt s">c</i><i class="mt m">d</i></div><div class="chip">2 in a, b, d</div> <div class="chip">1 in a, c</div> <div class="chip">1 in c, d</div><p>If c were a mine, a and d could not be, and the 2 would get just 1. So c is safe.</p>' },
 ];
 
 function buildRules() {
@@ -537,12 +531,12 @@ function buildRules() {
   list.innerHTML = "";
   RULES.forEach((r, i) => {
     const el = document.createElement("div");
-    el.className = "rule";
-    el.innerHTML = `<label class="opt"><input type="checkbox" ${rules[r.id] ? "checked" : ""}><i></i>
-      <span>${i + 1} · ${r.name} <em>${r.level}</em><small>${r.short}</small></span></label>
+    el.className = "rule" + (rules[r.id] ? " on" : "");
+    el.innerHTML = `<button class="rbox"><b>${i + 1}</b><span>${r.name}</span><em>${r.level}</em></button>
       <details><summary>How it works</summary><div class="lesson"><p>${r.how}</p>${r.ex}</div></details>`;
-    el.querySelector("input").onchange = e => {
-      rules[r.id] = e.target.checked;
+    el.querySelector(".rbox").onclick = () => {
+      rules[r.id] = !rules[r.id];
+      el.classList.toggle("on", rules[r.id]);
       try { localStorage.setItem("mfRules", JSON.stringify(rules)); } catch (err) {}
       refreshMarks();
     };
@@ -550,23 +544,18 @@ function buildRules() {
   });
 }
 
-function layoutRules() {
-  const p = $("rules");
-  if (p.hidden) return;
-  const room = (document.documentElement.clientWidth - document.querySelector(".wrap").offsetWidth) / 2;
-  p.classList.toggle("side", room >= 344);
-}
+function setDrawer(open) { $("rules").classList.toggle("open", open); }
 
 const pl = (n, w) => n + " " + w + (n === 1 ? "" : "s");
 function whyText(mk) {
   const i = mk.info, mine = mk.kind === "mine";
   switch (mk.rule) {
-    case "full": return `This ${i.n} still needs ${pl(i.need, "mine")} and has exactly ${pl(i.size, "closed tile")} left, so they are all mines.`;
-    case "satisfied": return `This ${i.n} already has all its mines accounted for, so its other closed neighbours are safe.`;
-    case "subset": return `The ${i.a.n} needs ${i.a.need} more and all its tiles also touch the ${i.b.n}, which needs ${i.b.need} more. That leaves ${pl(i.size, "tile")} holding ${i.dn} mine${i.dn === 1 ? "" : "s"}, ` + (mine ? "so they are all mines." : "so none of them is a mine.");
-    case "overlap": return `The ${i.a.n} (needs ${i.a.need}) and the ${i.b.n} (needs ${i.b.need}) share tiles. The ${i.a.n} needs ${i.size} more mines than the ${i.b.n} and has exactly ${pl(i.size, "tile")} only it touches, ` + (mine ? "so those tiles are all mines." : "so the other number's own tiles hold no mine.");
-    case "count": return mine ? `Only ${pl(i.rem, "mine")} left and exactly ${pl(i.unknown, "unknown tile")}, so they are all mines.` : "No mines are left, so every unknown tile is safe.";
-    default: return `In every arrangement of the mines that fits all the numbers and the total, this tile is ${mine ? "always" : "never"} a mine.`;
+    case "full": return `This ${i.n} needs ${i.need} more and has ${pl(i.size, "closed tile")}: all mines.`;
+    case "satisfied": return `This ${i.n} has all its mines, so the rest are safe.`;
+    case "subset": return `The ${i.a.n} sits inside the ${i.b.n}. The other ${pl(i.size, "tile")} ${i.size === 1 ? "has" : "have"} ${i.dn}: ` + (mine ? "all mines." : "safe.");
+    case "overlap": return `The ${i.a.n} needs ${i.size} more than the ${i.b.n} and has ${pl(i.size, "tile")} only it touches: ` + (mine ? "all mines." : "so the other's own tiles are safe.");
+    case "count": return mine ? `${pl(i.rem, "mine")} left, ${pl(i.unknown, "unknown tile")}: all mines.` : "No mines left, so these are safe.";
+    default: return mine ? "A mine in every layout that fits." : "Never a mine in any layout that fits.";
   }
 }
 
@@ -577,7 +566,7 @@ function showWhy(t) {
   whySet = new Set(mk ? mk.nums : []);
   if (!over) for (const k of new Set([...old, ...whySet])) if (old.has(k) !== whySet.has(k)) paint(k % W, Math.floor(k / W));
   const r = mk && RULES.find(x => x.id === mk.rule);
-  $("why").innerHTML = mk ? `<b>${mk.kind === "mine" ? "Certain mine" : "Certain safe"} · ${r.name}</b><br>${whyText(mk)}` : "Hover a marked tile to see why it is certain.";
+  $("why").innerHTML = mk ? `<b>${mk.kind === "mine" ? "Mine" : "Safe"} · ${r.name}</b><br>${whyText(mk)}` : "Hover a mark to see why.";
 }
 
 // opens tiles breadth first; each tile's delay grows with its distance so the clear ripples outward
@@ -725,11 +714,13 @@ boardEl.addEventListener("click", e => {
 $("face").onclick = reset;
 $("gear").onclick = () => { $("panel").hidden = !$("panel").hidden; };
 document.addEventListener("click", e => { if (!e.target.closest(".settings")) $("panel").hidden = true; });
-document.addEventListener("keydown", e => { if (e.key === "Escape") $("panel").hidden = true; });
+document.addEventListener("keydown", e => { if (e.key === "Escape") { $("panel").hidden = true; setDrawer(false); } });
 try { autoChord = localStorage.getItem("autochord") === "1"; } catch (e) {}
-$("autochord").checked = autoChord;
-$("autochord").onchange = e => {
-  autoChord = e.target.checked;
+$("autochord").classList.toggle("on", autoChord);
+$("rtab").onclick = () => setDrawer(!$("rules").classList.contains("open"));
+$("autochord").onclick = () => {
+  autoChord = !autoChord;
+  $("autochord").classList.toggle("on", autoChord);
   try { localStorage.setItem("autochord", autoChord ? "1" : "0"); } catch (err) {}
   refreshHl();
   hoverChord();
@@ -740,7 +731,6 @@ buildTabs();
 buildModes();
 buildRules();
 reset();
-window.addEventListener("resize", layoutRules);
 </script>
 </body>
 </html>
