@@ -63,10 +63,6 @@
   .c.open { background: var(--open); box-shadow: none; cursor: default; }
   .c.adj:not(.open) { background: #36342d; box-shadow: inset 0 0 0 1px rgba(212,175,55,.14); }
   .c.adj.open { background: #0d0c08; }
-  .settings { position: relative; align-self: center; margin-top: 14px; }
-  #gear { font: inherit; font-size: .78rem; color: var(--dim); background: none; border: 0; padding: 0; cursor: pointer; }
-  #gear:hover { color: var(--text); }
-  #panel { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: min(320px, 86vw); z-index: 5; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; box-shadow: 0 12px 32px rgba(0,0,0,.6); }
   .c.flag, .c.flag:hover, .c.flag.adj { background: #000; box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
   .c.flag.adj { box-shadow: inset 0 0 0 1px rgba(212,175,55,.2); }
   .c.flag::before {
@@ -91,23 +87,22 @@
   .c.safe::before { content: ""; width: 8px; height: 15px; border: solid rgba(24,16,0,.8); border-width: 0 3px 3px 0; transform: rotate(45deg) translate(-2px, -2px); }
   .c.why { box-shadow: inset 0 0 0 1px rgba(212,175,55,.6); }
   .box, .rule { border: 1px solid var(--line); border-radius: 12px; background: #101011; color: var(--dim); transition: border-color .15s, background .15s, color .15s; }
-  .box { display: block; width: 100%; text-align: left; font: inherit; font-size: .82rem; padding: 10px 12px; cursor: pointer; }
+  .box { display: block; width: 100%; margin-bottom: 8px; text-align: left; font: inherit; font-size: .85rem; padding: 11px 12px; cursor: pointer; }
   .box small { display: block; margin-top: 2px; font-size: .7rem; color: var(--dim); }
   .box.on, .rule.on { border-color: rgba(212,175,55,.7); background: rgba(212,175,55,.09); color: var(--text); }
-  #panel .box { min-width: 200px; }
   #rules { position: fixed; z-index: 20; left: 0; top: 0; bottom: 0; width: min(330px, 88vw); background: #09090a; border-right: 1px solid var(--line); transform: translateX(-100%); transition: transform .25s ease; }
   #rules.open { transform: none; box-shadow: 12px 0 40px rgba(0,0,0,.6); }
   #rtab { position: absolute; left: 100%; top: 110px; writing-mode: vertical-rl; padding: 16px 8px; font: inherit; font-size: .72rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); background: #09090a; border: 1px solid var(--line); border-left: 0; border-radius: 0 10px 10px 0; cursor: pointer; }
   #rtab:hover { color: #000; background: var(--accent); }
   .rin { height: 100%; overflow: auto; padding: 18px 14px 40px; }
-  .rule { margin-bottom: 8px; }
+  .rule { position: relative; margin-bottom: 8px; }
+  .how { position: absolute; right: 8px; top: 9px; padding: 4px 8px; background: none; border: 0; border-radius: 6px; font: inherit; font-size: .7rem; color: var(--dim); cursor: pointer; }
+  .how:hover { color: var(--text); background: rgba(255,255,255,.07); }
+  .sep { height: 1px; margin: 14px 0; background: var(--line); }
   .rbox { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 12px; background: none; border: 0; color: inherit; font: inherit; font-size: .85rem; text-align: left; cursor: pointer; }
   .rbox b { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; background: #232326; color: var(--dim); font-size: .72rem; }
   .rule.on .rbox b { background: var(--accent); color: #000; }
-  .rule details { padding: 0 12px 10px 42px; }
-  .rule summary { cursor: pointer; font-size: .74rem; color: var(--dim); }
-  .rule summary:hover { color: var(--text); }
-  .lesson { color: var(--dim); font-size: .76rem; line-height: 1.5; }
+  .lesson { padding: 0 12px 12px 42px; color: var(--dim); font-size: .76rem; line-height: 1.5; }
   .lesson p { margin: 8px 0; }
   .mg { display: grid; grid-template-columns: repeat(var(--cols), 24px); gap: 3px; margin: 8px 0 2px; }
   .mt { width: 24px; height: 24px; border-radius: 6px; background: var(--cell); display: flex; align-items: center; justify-content: center; font: 700 .78rem var(--num); font-style: normal; }
@@ -148,6 +143,7 @@
   <div class="top">
     <div class="modes" id="modes"></div>
     <div class="stats">
+      <span>Best<b id="best">---</b></span>
       <span>Mines<b id="mines">010</b></span>
       <span>Time<b id="time">000</b></span>
       <button id="face">New game</button>
@@ -156,18 +152,15 @@
   <div class="scroller"><div id="board"></div></div>
   <div id="msg"></div>
   <div id="why"></div>
-  <div class="settings">
-    <button id="gear">Settings</button>
-    <div id="panel" hidden>
-      <button class="box" id="autochord"><b>Hover chord</b><small>Hovering works like a middle-click</small></button>
-    </div>
-  </div>
   <div class="hint" id="exp" hidden></div>
 </div>
 <aside id="rules">
   <button id="rtab">Rules</button>
   <div class="rin">
     <div id="rulelist"></div>
+    <div class="sep"></div>
+    <button class="box" id="autochord" title="Hovering a number acts like a middle-click">Hover chord</button>
+    <button class="box" id="autosweep" title="Clears around every number whose flags match, without hovering">Auto chord</button>
     <div id="capnote" hidden>Rule 6 skipped some tangled areas.</div>
   </div>
 </aside>
@@ -178,7 +171,7 @@ const MODES = {
   Medium: { w: 16, h: 16, m: 40 },
   Hard:   { w: 30, h: 16, m: 99 },
 };
-let view = "classic", marks = new Map(), capped = false, whySet = new Set(), whyTile = null, experimental = false, autoChord = false, hover = null, hl = null, midPos = null, midHeld = false, mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
+let view = "classic", marks = new Map(), capped = false, whySet = new Set(), whyTile = null, experimental = false, autoChord = false, autoAll = false, sweeping = false, bests = {}, hover = null, hl = null, midPos = null, midHeld = false, mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
 
 const $ = id => document.getElementById(id);
 const boardEl = $("board");
@@ -200,9 +193,6 @@ function buildTabs() {
       view = id; experimental = id === "experimental"; buildTabs();
       $("exp").hidden = !hint; $("exp").textContent = hint;
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (grid[y][x].open) paint(x, y);
-      $("rules").hidden = id !== "classic";
-      $("why").hidden = id !== "classic";
-      if (id !== "classic") setDrawer(false);
       refreshMarks();
     };
     $("tabs").appendChild(b);
@@ -241,6 +231,7 @@ function reset() {
   }
   $("time").textContent = "000";
   $("mines").textContent = pad(M);
+  showBest();
   $("msg").textContent = ""; $("msg").className = "";
   showWhy(null);
 }
@@ -273,7 +264,7 @@ function paint(x, y) {
   const c = grid[y][x], el = cells[y][x];
   el.className = "c";
   el.textContent = "";
-  const mk = view === "classic" && !c.open && !c.flag ? marks.get(y * W + x) : null;
+  const mk = !c.open && !c.flag ? marks.get(y * W + x) : null;
   if (mk) el.classList.add(mk.kind === "mine" ? "sure" : "safe");
   if (whySet.has(y * W + x)) el.classList.add("why");
   if (hl && Math.max(Math.abs(hl[0] - x), Math.abs(hl[1] - y)) === 1) el.classList.add("adj");
@@ -478,7 +469,7 @@ function solve() {
 }
 
 function refreshMarks() {
-  const next = view === "classic" && !over && started && Object.values(rules).some(Boolean) ? solve() : { marks: new Map(), capped: false }, old = marks;
+  const next = !over && started && Object.values(rules).some(Boolean) ? solve() : { marks: new Map(), capped: false }, old = marks;
   marks = next.marks;
   capped = next.capped;
   $("capnote").hidden = !capped;
@@ -527,8 +518,9 @@ function buildRules() {
   RULES.forEach((r, i) => {
     const el = document.createElement("div");
     el.className = "rule" + (rules[r.id] ? " on" : "");
-    el.innerHTML = `<button class="rbox"><b>${i + 1}</b><span>${r.name}</span></button>
-      <details><summary>How it works</summary><div class="lesson"><p>${r.how}</p>${r.ex}</div></details>`;
+    el.innerHTML = `<button class="rbox"><b>${i + 1}</b><span>${r.name}</span></button><button class="how">How it works</button>
+      <div class="lesson" hidden><p>${r.how}</p>${r.ex}</div>`;
+    el.querySelector(".how").onclick = () => { const l = el.querySelector(".lesson"); l.hidden = !l.hidden; };
     el.querySelector(".rbox").onclick = () => {
       rules[r.id] = !rules[r.id];
       el.classList.toggle("on", rules[r.id]);
@@ -556,7 +548,7 @@ function whyText(mk) {
 
 function showWhy(t) {
   whyTile = t;
-  const mk = t && view === "classic" && !over ? marks.get(t[1] * W + t[0]) : null;
+  const mk = t && !over ? marks.get(t[1] * W + t[0]) : null;
   const old = whySet;
   whySet = new Set(mk ? mk.nums : []);
   if (!over) for (const k of new Set([...old, ...whySet])) if (old.has(k) !== whySet.has(k)) paint(k % W, Math.floor(k / W));
@@ -575,7 +567,7 @@ function reveal(x, y) {
     paint(cx, cy);
     if (!c.n) for (const [nx, ny] of neighbors(cx, cy)) q.push([nx, ny, d + 1]);
   }
-  if (view === "classic") refreshMarks();
+  refreshMarks();
 }
 
 function dig(x, y) {
@@ -633,7 +625,13 @@ function win() {
   }
   if (experimental) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (grid[y][x].open) paint(x, y);
   $("mines").textContent = "000";
-  $("msg").textContent = `Cleared in ${secs}s`; $("msg").className = "win";
+  const isBest = bests[mode] == null || secs < bests[mode];
+  if (isBest) {
+    bests[mode] = secs;
+    try { localStorage.setItem("mfBest", JSON.stringify(bests)); } catch (err) {}
+    showBest();
+  }
+  $("msg").textContent = `Cleared in ${secs}s` + (isBest ? " · best" : ""); $("msg").className = "win";
 }
 
 function setHl(pos) {
@@ -661,6 +659,28 @@ function endHover() {
   boardEl.querySelectorAll(".adj").forEach(el => el.classList.remove("adj"));
 }
 
+function showBest() { $("best").textContent = bests[mode] == null ? "---" : pad(bests[mode]); }
+
+// auto chord: clears around every number whose flags already match it, over and over until nothing is left
+function sweep() {
+  if (!autoAll || over || sweeping) return;
+  sweeping = true;
+  try {
+    for (let again = true; again && !over;) {
+      again = false;
+      for (let y = 0; y < H && !over; y++) for (let x = 0; x < W && !over; x++) {
+        const c = grid[y][x];
+        if (!c.open || !c.n) continue;
+        let f = 0, closed = 0;
+        for (const [a, b] of neighbors(x, y)) { const t = grid[b][a]; if (t.flag) f++; else if (!t.open) closed++; }
+        if (f === c.n && closed) { chord(x, y); again = true; }
+      }
+    }
+  } finally { sweeping = false; }
+}
+
+function settle() { sweep(); hoverChord(); }
+
 function hoverChord() {
   if (!autoChord || over || !hover || !grid[hover[1]][hover[0]].open) return;
   chord(...hover);
@@ -672,12 +692,12 @@ function target(e) { const t = e.target.closest(".c"); return t ? [+t.dataset.x,
 
 boardEl.addEventListener("contextmenu", e => {
   e.preventDefault();
-  const t = target(e); if (t) { flag(...t); hoverChord(); }
+  const t = target(e); if (t) { flag(...t); settle(); }
 });
 boardEl.addEventListener("pointerover", e => {
   if (e.pointerType !== "mouse") return;
   const t = target(e);
-  if (t) { if (midHeld) midPos = t; setHover(t); showWhy(t); hoverChord(); }
+  if (t) { if (midHeld) midPos = t; setHover(t); showWhy(t); settle(); }
 });
 boardEl.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") { setHover(null); showWhy(null); } });
 boardEl.addEventListener("mousedown", e => {
@@ -691,25 +711,25 @@ boardEl.addEventListener("auxclick", e => {
   if (e.button !== 1) return;
   e.preventDefault();
   const t = target(e);
-  if (t && !over && grid[t[1]][t[0]].open) chord(...t);
+  if (t && !over && grid[t[1]][t[0]].open) { chord(...t); settle(); }
 });
 boardEl.addEventListener("pointerdown", e => {
   if (e.pointerType === "mouse") return;
   const t = target(e); if (!t) return;
   longFired = false;
-  pressTimer = setTimeout(() => { longFired = true; flag(...t); if (navigator.vibrate) navigator.vibrate(20); }, 380);
+  pressTimer = setTimeout(() => { longFired = true; flag(...t); settle(); if (navigator.vibrate) navigator.vibrate(20); }, 380);
 });
 ["pointerup", "pointercancel", "pointermove"].forEach(ev =>
   boardEl.addEventListener(ev, () => clearTimeout(pressTimer)));
 boardEl.addEventListener("click", e => {
   if (longFired) { longFired = false; return; }
   const t = target(e);
-  if (t) { dig(...t); if (e.pointerType !== 'touch' && e.detail) hoverChord(); }
+  if (t) { dig(...t); settle(); }
 });
 $("face").onclick = reset;
-$("gear").onclick = () => { $("panel").hidden = !$("panel").hidden; };
-document.addEventListener("click", e => { if (!e.target.closest(".settings")) $("panel").hidden = true; });
-document.addEventListener("keydown", e => { if (e.key === "Escape") { $("panel").hidden = true; setDrawer(false); } });
+document.addEventListener("click", e => { if (!e.target.closest("#rules")) setDrawer(false); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") setDrawer(false); });
+try { bests = JSON.parse(localStorage.getItem("mfBest")) || {}; } catch (e) {}
 try { autoChord = localStorage.getItem("autochord") === "1"; } catch (e) {}
 $("autochord").classList.toggle("on", autoChord);
 $("rtab").onclick = () => setDrawer(!$("rules").classList.contains("open"));
@@ -718,7 +738,15 @@ $("autochord").onclick = () => {
   $("autochord").classList.toggle("on", autoChord);
   try { localStorage.setItem("autochord", autoChord ? "1" : "0"); } catch (err) {}
   refreshHl();
-  hoverChord();
+  settle();
+};
+try { autoAll = localStorage.getItem("autosweep") === "1"; } catch (e) {}
+$("autosweep").classList.toggle("on", autoAll);
+$("autosweep").onclick = () => {
+  autoAll = !autoAll;
+  $("autosweep").classList.toggle("on", autoAll);
+  try { localStorage.setItem("autosweep", autoAll ? "1" : "0"); } catch (err) {}
+  settle();
 };
 document.addEventListener("keydown", e => { if (e.key === "r" || e.key === "R") reset(); });
 
