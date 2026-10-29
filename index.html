@@ -59,16 +59,16 @@
     font-family: var(--num); font-weight: 700; font-size: calc(var(--size) * .5); font-variant-numeric: tabular-nums;
     background: linear-gradient(160deg, var(--cell-hi), var(--cell)); box-shadow: inset 0 1px 0 rgba(255,255,255,.1), inset 0 -2px 0 rgba(0,0,0,.3); cursor: pointer; transition: background .12s, box-shadow .12s;
   }
-  .c:hover:not(.open) { background: linear-gradient(160deg, var(--cell-hover), var(--cell-hi)); box-shadow: inset 0 0 0 1px rgba(212,175,55,.6); }
+  .c:hover:not(.open) { background: linear-gradient(160deg, var(--cell-hover), var(--cell-hi)); box-shadow: inset 0 0 0 1px rgba(212,175,55,.3); }
   .c.open { background: var(--open); box-shadow: none; cursor: default; }
-  .c.adj:not(.open) { background: #4a4224; box-shadow: inset 0 0 0 1px rgba(212,175,55,.45); }
-  .c.adj.open { background: #17140a; }
+  .c.adj:not(.open) { background: #36342d; box-shadow: inset 0 0 0 1px rgba(212,175,55,.14); }
+  .c.adj.open { background: #0d0c08; }
   .settings { position: relative; align-self: center; margin-top: 14px; }
   #gear { font: inherit; font-size: .78rem; color: var(--dim); background: none; border: 0; padding: 0; cursor: pointer; }
   #gear:hover { color: var(--text); }
   #panel { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: min(320px, 86vw); z-index: 5; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; box-shadow: 0 12px 32px rgba(0,0,0,.6); }
   .c.flag, .c.flag:hover, .c.flag.adj { background: #000; box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
-  .c.flag.adj { box-shadow: inset 0 0 0 1px rgba(212,175,55,.45); }
+  .c.flag.adj { box-shadow: inset 0 0 0 1px rgba(212,175,55,.2); }
   .c.flag::before {
     content: ""; width: 0; height: 0; margin-left: 3px;
     border-left: 11px solid var(--accent); border-top: 6px solid transparent; border-bottom: 6px solid transparent;
@@ -84,12 +84,12 @@
   .c.flag::before, .c.flag::after { animation: dot .18s ease-out; }
   .c.sure, .c.sure:hover:not(.open), .c.sure.adj:not(.open) { background: #8c2f2a; box-shadow: inset 0 1px 0 rgba(255,255,255,.12), inset 0 -2px 0 rgba(0,0,0,.2); }
   .c.sure:hover:not(.open) { background: #a33a33; }
-  .c.sure.adj:not(.open) { box-shadow: inset 0 0 0 1px rgba(212,175,55,.45); }
+  .c.sure.adj:not(.open) { box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
   .c.safe, .c.safe:hover:not(.open), .c.safe.adj:not(.open) { background: #c9a227; box-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -2px 0 rgba(0,0,0,.2); }
   .c.safe:hover:not(.open) { background: #dcb73c; }
-  .c.safe.adj:not(.open) { box-shadow: inset 0 0 0 1px rgba(212,175,55,.45); }
+  .c.safe.adj:not(.open) { box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); }
   .c.safe::before { content: ""; width: 8px; height: 15px; border: solid rgba(24,16,0,.8); border-width: 0 3px 3px 0; transform: rotate(45deg) translate(-2px, -2px); }
-  .c.why { box-shadow: inset 0 0 0 2px var(--accent); }
+  .c.why { box-shadow: inset 0 0 0 1px rgba(212,175,55,.6); }
   .box, .rule { border: 1px solid var(--line); border-radius: 12px; background: #101011; color: var(--dim); transition: border-color .15s, background .15s, color .15s; }
   .box { display: block; width: 100%; text-align: left; font: inherit; font-size: .82rem; padding: 10px 12px; cursor: pointer; }
   .box small { display: block; margin-top: 2px; font-size: .7rem; color: var(--dim); }
@@ -100,12 +100,10 @@
   #rtab { position: absolute; left: 100%; top: 110px; writing-mode: vertical-rl; padding: 16px 8px; font: inherit; font-size: .72rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); background: #09090a; border: 1px solid var(--line); border-left: 0; border-radius: 0 10px 10px 0; cursor: pointer; }
   #rtab:hover { color: #000; background: var(--accent); }
   .rin { height: 100%; overflow: auto; padding: 18px 14px 40px; }
-  .lead { margin: 0 0 12px; color: var(--dim); font-size: .74rem; }
   .rule { margin-bottom: 8px; }
   .rbox { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 12px; background: none; border: 0; color: inherit; font: inherit; font-size: .85rem; text-align: left; cursor: pointer; }
   .rbox b { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; background: #232326; color: var(--dim); font-size: .72rem; }
   .rule.on .rbox b { background: var(--accent); color: #000; }
-  .rbox em { margin-left: auto; font-style: normal; font-size: .6rem; text-transform: uppercase; letter-spacing: .08em; opacity: .7; }
   .rule details { padding: 0 12px 10px 42px; }
   .rule summary { cursor: pointer; font-size: .74rem; color: var(--dim); }
   .rule summary:hover { color: var(--text); }
@@ -122,7 +120,7 @@
   .eb.b { background: #9a9a95; }
   .chip { display: inline-block; margin-top: 6px; padding: 3px 8px; border-radius: 8px; background: #000; color: var(--text); font-size: .7rem; }
   #capnote { margin-top: 10px; color: var(--accent); font-size: .72rem; }
-  #why { width: 0; min-width: 100%; min-height: 2.9em; margin-top: 8px; text-align: center; color: var(--dim); font-size: .78rem; line-height: 1.45; }
+  #why { width: 0; min-width: 100%; min-height: 2.6em; margin-top: 8px; text-align: center; color: var(--dim); font-size: .78rem; line-height: 1.45; }
   #why b { color: var(--text); font-weight: 600; }
   .c.mine::before { animation: dot .3s ease-out backwards; animation-delay: var(--md, 0ms); }
   @media (prefers-reduced-motion: reduce) { .c.anim, .c.flag::before, .c.flag::after, .c.mine::before { animation: none; } }
@@ -157,7 +155,7 @@
   </div>
   <div class="scroller"><div id="board"></div></div>
   <div id="msg"></div>
-  <div id="why" hidden></div>
+  <div id="why"></div>
   <div class="settings">
     <button id="gear">Settings</button>
     <div id="panel" hidden>
@@ -165,12 +163,10 @@
     </div>
   </div>
   <div class="hint" id="exp" hidden></div>
-  <div class="hint">Click dig · Right-click flag · Middle-click clear · R restart</div>
 </div>
-<aside id="rules" hidden>
+<aside id="rules">
   <button id="rtab">Rules</button>
   <div class="rin">
-    <p class="lead">Click a rule to turn it on or off.</p>
     <div id="rulelist"></div>
     <div id="capnote" hidden>Rule 6 skipped some tangled areas.</div>
   </div>
@@ -192,7 +188,6 @@ function pad(n) { return String(Math.max(0, Math.min(999, n))).padStart(3, "0");
 const VIEWS = [
   ["classic", "Classic", ""],
   ["experimental", "Experimental", "Flags subtract from nearby numbers."],
-  ["finder", "Mine finder", "Red is a mine. Gold tick is safe."],
 ];
 
 function buildTabs() {
@@ -205,9 +200,9 @@ function buildTabs() {
       view = id; experimental = id === "experimental"; buildTabs();
       $("exp").hidden = !hint; $("exp").textContent = hint;
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (grid[y][x].open) paint(x, y);
-      $("rules").hidden = id !== "finder";
-      $("why").hidden = id !== "finder";
-      if (id !== "finder") setDrawer(false);
+      $("rules").hidden = id !== "classic";
+      $("why").hidden = id !== "classic";
+      if (id !== "classic") setDrawer(false);
       refreshMarks();
     };
     $("tabs").appendChild(b);
@@ -278,7 +273,7 @@ function paint(x, y) {
   const c = grid[y][x], el = cells[y][x];
   el.className = "c";
   el.textContent = "";
-  const mk = view === "finder" && !c.open && !c.flag ? marks.get(y * W + x) : null;
+  const mk = view === "classic" && !c.open && !c.flag ? marks.get(y * W + x) : null;
   if (mk) el.classList.add(mk.kind === "mine" ? "sure" : "safe");
   if (whySet.has(y * W + x)) el.classList.add("why");
   if (hl && Math.max(Math.abs(hl[0] - x), Math.abs(hl[1] - y)) === 1) el.classList.add("adj");
@@ -299,9 +294,9 @@ function paint(x, y) {
 
 // ---- mine finder: six rules, each can be switched off ----
 const RULE_IDS = ["full", "satisfied", "subset", "overlap", "count", "enumerate"];
-let rules = { full: true, satisfied: true, subset: true, overlap: true, count: true, enumerate: true };
+let rules = { full: false, satisfied: false, subset: false, overlap: false, count: false, enumerate: false };
 try {
-  const saved = JSON.parse(localStorage.getItem("mfRules"));
+  const saved = JSON.parse(localStorage.getItem("mfRules2"));
   if (saved) for (const id of RULE_IDS) if (typeof saved[id] === "boolean") rules[id] = saved[id];
 } catch (e) {}
 
@@ -483,7 +478,7 @@ function solve() {
 }
 
 function refreshMarks() {
-  const next = view === "finder" && !over && started ? solve() : { marks: new Map(), capped: false }, old = marks;
+  const next = view === "classic" && !over && started && Object.values(rules).some(Boolean) ? solve() : { marks: new Map(), capped: false }, old = marks;
   marks = next.marks;
   capped = next.capped;
   $("capnote").hidden = !capped;
@@ -506,22 +501,22 @@ const mg = (cols, str) => `<div class="mg" style="--cols:${cols}">` + str.split(
 }).join("") + "</div>";
 
 const RULES = [
-  { id: "full", name: "Full count", level: "Beginner",
+  { id: "full", name: "Full count",
     how: "If a number's closed tiles equal the number, they are all mines.",
     ex: mg(3, ". . . . 2 M . M .") },
-  { id: "satisfied", name: "Satisfied", level: "Beginner",
+  { id: "satisfied", name: "Satisfied",
     how: "If a number already has its mines, its other closed tiles are safe.",
     ex: mg(3, ". . . M 1 S . . .") },
-  { id: "subset", name: "Subset", level: "Medium",
+  { id: "subset", name: "Subset",
     how: "One number's tiles sit inside another's. The leftover tiles hold the difference: all mines, or none if it is zero. Here the 1 sits inside the 2, so the last tile is a mine.",
     ex: mg(3, "1 2 _ # # M") },
-  { id: "overlap", name: "Overlap", level: "Advanced",
+  { id: "overlap", name: "Overlap",
     how: "Two numbers share tiles. If one needs as many more mines as it has tiles of its own, those are all mines and the other's own tiles are safe. Here 3 in 4 tiles and 1 in 3 forces the first two.",
     ex: '<div class="mg" style="--cols:5"><i class="mt m"></i><i class="mt m"></i><i class="mt"></i><i class="mt"></i><i class="mt s"></i><div class="eb a" style="grid-column:1/5">3 mines</div><div class="eb b" style="grid-column:3/6">1 mine</div></div>' },
-  { id: "count", name: "Mine count", level: "Medium",
+  { id: "count", name: "Mine count",
     how: "If the mines left equal the unknown tiles, they are all mines. If none are left, they are all safe.",
     ex: mg(2, "M M") + '<div class="chip">2 mines left, 2 tiles</div>' },
-  { id: "enumerate", name: "Every layout", level: "Expert",
+  { id: "enumerate", name: "Every layout",
     how: "List every layout that fits the numbers and the total. A tile that is always a mine is certain. One that is never a mine is safe. This catches everything above.",
     ex: '<div class="mg" style="--cols:4"><i class="mt m">a</i><i class="mt s">b</i><i class="mt s">c</i><i class="mt m">d</i></div><div class="chip">2 in a, b, d</div> <div class="chip">1 in a, c</div> <div class="chip">1 in c, d</div><p>If c were a mine, a and d could not be, and the 2 would get just 1. So c is safe.</p>' },
 ];
@@ -532,12 +527,12 @@ function buildRules() {
   RULES.forEach((r, i) => {
     const el = document.createElement("div");
     el.className = "rule" + (rules[r.id] ? " on" : "");
-    el.innerHTML = `<button class="rbox"><b>${i + 1}</b><span>${r.name}</span><em>${r.level}</em></button>
+    el.innerHTML = `<button class="rbox"><b>${i + 1}</b><span>${r.name}</span></button>
       <details><summary>How it works</summary><div class="lesson"><p>${r.how}</p>${r.ex}</div></details>`;
     el.querySelector(".rbox").onclick = () => {
       rules[r.id] = !rules[r.id];
       el.classList.toggle("on", rules[r.id]);
-      try { localStorage.setItem("mfRules", JSON.stringify(rules)); } catch (err) {}
+      try { localStorage.setItem("mfRules2", JSON.stringify(rules)); } catch (err) {}
       refreshMarks();
     };
     list.appendChild(el);
@@ -561,12 +556,12 @@ function whyText(mk) {
 
 function showWhy(t) {
   whyTile = t;
-  const mk = t && view === "finder" && !over ? marks.get(t[1] * W + t[0]) : null;
+  const mk = t && view === "classic" && !over ? marks.get(t[1] * W + t[0]) : null;
   const old = whySet;
   whySet = new Set(mk ? mk.nums : []);
   if (!over) for (const k of new Set([...old, ...whySet])) if (old.has(k) !== whySet.has(k)) paint(k % W, Math.floor(k / W));
   const r = mk && RULES.find(x => x.id === mk.rule);
-  $("why").innerHTML = mk ? `<b>${mk.kind === "mine" ? "Mine" : "Safe"} · ${r.name}</b><br>${whyText(mk)}` : "Hover a mark to see why.";
+  $("why").innerHTML = mk ? `<b>${mk.kind === "mine" ? "Mine" : "Safe"} · ${r.name}</b><br>${whyText(mk)}` : "";
 }
 
 // opens tiles breadth first; each tile's delay grows with its distance so the clear ripples outward
@@ -580,7 +575,7 @@ function reveal(x, y) {
     paint(cx, cy);
     if (!c.n) for (const [nx, ny] of neighbors(cx, cy)) q.push([nx, ny, d + 1]);
   }
-  if (view === "finder") refreshMarks();
+  if (view === "classic") refreshMarks();
 }
 
 function dig(x, y) {
