@@ -118,6 +118,8 @@
   .slide b { width: 52px; text-align: right; font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
   #statsbtn { font: inherit; font-size: .74rem; color: var(--dim); background: none; border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; cursor: pointer; }
   #statsbtn:hover { color: var(--text); border-color: #3a3a3f; }
+  #custommodal { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(0,0,0,.68); }
+  #custommodal[hidden] { display: none; }
   #statsmodal { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(0,0,0,.68); }
   #statsmodal[hidden] { display: none; }
   .card { position: relative; min-width: min(400px, 90vw); padding: 22px 24px; background: #0d0d0e; border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.7); }
@@ -128,8 +130,14 @@
   .card th:first-child, .card td:first-child { text-align: left; }
   .srow { display: flex; justify-content: space-between; padding-top: 10px; font-size: .82rem; color: var(--dim); }
   .srow b { font-weight: 500; color: var(--text); }
-  #statsclose { position: absolute; right: 12px; top: 8px; background: none; border: 0; color: var(--dim); font-size: 1.3rem; cursor: pointer; }
-  #statsclose:hover { color: var(--text); }
+  .crow { display: flex; justify-content: space-between; align-items: center; margin: 12px 0; font-size: .85rem; color: var(--dim); }
+  .crow input { width: 92px; padding: 6px 9px; background: #000; border: 1px solid var(--line); border-radius: 8px; color: var(--text); font: inherit; text-align: right; }
+  .crow input:focus { outline: none; border-color: rgba(212,175,55,.6); }
+  #chint { font-size: .72rem; color: var(--dim); text-align: right; }
+  #cstart { width: 100%; margin-top: 16px; padding: 9px; background: var(--accent); color: #000; border: 0; border-radius: 10px; font: inherit; font-weight: 600; cursor: pointer; }
+  #cstart:hover { background: #e0bb45; }
+  #cclose, #statsclose { position: absolute; right: 12px; top: 8px; background: none; border: 0; color: var(--dim); font-size: 1.3rem; cursor: pointer; }
+  #cclose:hover, #statsclose:hover { color: var(--text); }
   #statsreset { margin-top: 18px; background: none; border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; font: inherit; font-size: .72rem; color: var(--dim); cursor: pointer; }
   .sep { height: 1px; margin: 14px 0; background: var(--line); }
   .rbox { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 12px; background: none; border: 0; color: inherit; font: inherit; font-size: .85rem; text-align: left; cursor: pointer; }
@@ -206,6 +214,17 @@
     <button id="statsreset">Reset</button>
   </div>
 </div>
+<div id="custommodal" hidden>
+  <div class="card">
+    <button id="cclose" aria-label="Close">&times;</button>
+    <h2>Custom</h2>
+    <label class="crow">Width <input type="number" id="cw" min="5" max="40"></label>
+    <label class="crow">Height <input type="number" id="ch" min="5" max="24"></label>
+    <label class="crow">Mines <input type="number" id="cm" min="1"></label>
+    <div id="chint"></div>
+    <button id="cstart">Start</button>
+  </div>
+</div>
 <aside id="rules">
   <button id="rtab">Rules</button>
   <div class="rin">
@@ -216,7 +235,7 @@
     <button class="box" id="autosweep" title="Clears around every number whose flags match, without hovering">Auto chord</button>
     <button class="box" id="autoflag" title="Places a flag on every red mine">Auto flag</button>
     <button class="box" id="autoopen" title="Opens every certain safe tile">Auto open</button>
-    <label class="slide" title="Pause between automatic moves"><span>Delay</span><input type="range" id="autodelay" min="0" max="20" step="1" value="0"><b id="delayval">0 ms</b></label>
+    <label class="slide" title="Pause between automatic moves"><span>Delay</span><input type="range" id="autodelay" min="0" max="12" step="1" value="0"><b id="delayval">0 ms</b></label>
     <div id="capnote" hidden>Rule 6 skipped some tangled areas.</div>
   </div>
 </aside>
@@ -226,6 +245,7 @@ const MODES = {
   Easy:   { w: 9,  h: 9,  m: 10 },
   Medium: { w: 16, h: 16, m: 40 },
   Hard:   { w: 30, h: 16, m: 99 },
+  Custom: { w: 12, h: 12, m: 25 },
 };
 let view = "classic", marks = new Map(), chances = new Map(), capped = false, whySet = new Set(), whyTile = null, experimental = false, autoChord = false, autoAll = false, sweeping = false, autoFlag = false, autoOpen = false, autoDelay = 0, autoTimer = null, autoBusy = false, tapFlag = false, lastTile = null, assisted = false, stats = {}, bests = {}, hover = null, hl = null, midPos = null, midHeld = false, mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
 
@@ -247,6 +267,7 @@ function buildTabs() {
     b.className = id === view ? "on" : "";
     b.onclick = () => {
       view = id; experimental = id === "experimental"; buildTabs();
+      try { localStorage.setItem("mfView", id); } catch (err) {}
       $("exp").hidden = !hint; $("exp").textContent = hint;
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (grid[y][x].open) paint(x, y);
       refreshMarks();
@@ -255,13 +276,34 @@ function buildTabs() {
   });
 }
 
+function saveMode() { try { localStorage.setItem("mfMode", mode); } catch (err) {} }
+
+// custom boards stay between 5x5 and 40x24 with at most about a third of the tiles mined
+function clampCustom(c) {
+  const w = Math.min(40, Math.max(5, Math.round(+c.w) || 12)), h = Math.min(24, Math.max(5, Math.round(+c.h) || 12));
+  return { w, h, m: Math.min(Math.floor(w * h * 0.35), Math.max(1, Math.round(+c.m) || 1)) };
+}
+
+function openCustom() {
+  const c = MODES.Custom;
+  $("cw").value = c.w; $("ch").value = c.h; $("cm").value = c.m;
+  showCustomMax();
+  $("custommodal").hidden = false;
+  $("cw").focus();
+}
+
+function showCustomMax() {
+  const c = clampCustom({ w: $("cw").value, h: $("ch").value, m: 1 });
+  $("chint").textContent = "Up to " + Math.floor(c.w * c.h * 0.35) + " mines";
+}
+
 function buildModes() {
   $("modes").innerHTML = "";
   for (const name in MODES) {
     const b = document.createElement("button");
     b.textContent = name;
     b.className = name === mode ? "on" : "";
-    b.onclick = () => { mode = name; buildModes(); reset(); };
+    b.onclick = name === "Custom" ? openCustom : () => { mode = name; saveMode(); buildModes(); reset(); };
     $("modes").appendChild(b);
   }
 }
@@ -813,9 +855,9 @@ function win() {
   }
   if (experimental) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (grid[y][x].open) paint(x, y);
   $("mines").textContent = "000";
-  const isBest = bests[mode] == null || secs < bests[mode];
+  const isBest = bests[bestKey()] == null || secs < bests[bestKey()];
   if (isBest) {
-    bests[mode] = secs;
+    bests[bestKey()] = secs;
     try { localStorage.setItem("mfBest", JSON.stringify(bests)); } catch (err) {}
     showBest();
   }
@@ -880,14 +922,16 @@ function recordGame(won) {
 function renderStats() {
   const rows = Object.keys(MODES).map(m => {
     const t = stats[m];
-    return `<tr><td>${m}</td><td>${t.w}/${t.p}</td><td>${t.p ? Math.round(100 * t.w / t.p) + "%" : "-"}</td><td>${bests[m] == null ? "-" : bests[m] + "s"}</td><td>${t.w ? Math.round(t.total / t.w) + "s" : "-"}</td></tr>`;
+    return `<tr><td>${m}</td><td>${t.w}/${t.p}</td><td>${t.p ? Math.round(100 * t.w / t.p) + "%" : "-"}</td><td>${m === "Custom" || bests[m] == null ? "-" : bests[m] + "s"}</td><td>${t.w ? Math.round(t.total / t.w) + "s" : "-"}</td></tr>`;
   }).join("");
   $("statsbody").innerHTML = `<table><tr><th></th><th>Won</th><th>Rate</th><th>Best</th><th>Avg</th></tr>${rows}</table>
     <div class="srow"><span>Win streak</span><b>${stats.streak} (best ${stats.bestStreak})</b></div>
     <div class="srow"><span>Assisted wins</span><b>${stats.assisted}</b></div>`;
 }
 
-function showBest() { $("best").textContent = bests[mode] == null ? "---" : pad(bests[mode]); }
+const bestKey = () => mode === "Custom" ? `Custom ${W}x${H}/${M}` : mode;
+
+function showBest() { $("best").textContent = bests[bestKey()] == null ? "---" : pad(bests[bestKey()]); }
 
 function settle() { autoRun(); hoverChord(); }
 
@@ -957,7 +1001,7 @@ $("statsreset").onclick = () => {
   renderStats();
 };
 document.addEventListener("click", e => { if (!e.target.closest("#rules")) setDrawer(false); });
-document.addEventListener("keydown", e => { if (e.key === "Escape") { setDrawer(false); $("statsmodal").hidden = true; } });
+document.addEventListener("keydown", e => { if (e.key === "Escape") { setDrawer(false); $("statsmodal").hidden = true; $("custommodal").hidden = true; } });
 try { bests = JSON.parse(localStorage.getItem("mfBest")) || {}; } catch (e) {}
 try { autoChord = localStorage.getItem("autochord") === "1"; } catch (e) {}
 $("autochord").classList.toggle("on", autoChord);
@@ -986,20 +1030,19 @@ $("autoflag").onclick = () => {
   try { localStorage.setItem("autoflag", autoFlag ? "1" : "0"); } catch (err) {}
   autoRun();
 };
-// slider position 0 is no delay, then 10 ms rising steeply to 1 s at the far right
-const DELAY_STEPS = 20;
-const delayMs = v => v === 0 ? 0 : Math.round(10 * Math.pow(100, (v - 1) / (DELAY_STEPS - 1)));
+// slider stops: none, then 10 ms rising roughly by half again each step up to 1 s
+const DELAYS = [0, 10, 20, 30, 50, 70, 100, 150, 200, 300, 500, 700, 1000];
 const showDelay = () => { $("delayval").textContent = autoDelay >= 1000 ? "1 s" : autoDelay + " ms"; };
 let delayPos = 0;
-try { delayPos = Math.min(DELAY_STEPS, Math.max(0, parseInt(localStorage.getItem("autodelay2"), 10) || 0)); } catch (e) {}
-autoDelay = delayMs(delayPos);
+try { delayPos = Math.min(DELAYS.length - 1, Math.max(0, parseInt(localStorage.getItem("autodelay3"), 10) || 0)); } catch (e) {}
+autoDelay = DELAYS[delayPos];
 $("autodelay").value = delayPos;
 showDelay();
 $("autodelay").oninput = e => {
   delayPos = +e.target.value;
-  autoDelay = delayMs(delayPos);
+  autoDelay = DELAYS[delayPos];
   showDelay();
-  try { localStorage.setItem("autodelay2", String(delayPos)); } catch (err) {}
+  try { localStorage.setItem("autodelay3", String(delayPos)); } catch (err) {}
 };
 $("autoopen").onclick = () => {
   autoOpen = !autoOpen;
@@ -1007,9 +1050,31 @@ $("autoopen").onclick = () => {
   try { localStorage.setItem("autoopen", autoOpen ? "1" : "0"); } catch (err) {}
   autoRun();
 };
-document.addEventListener("keydown", e => { if (e.key === "r" || e.key === "R") reset(); });
+document.addEventListener("keydown", e => { if ((e.key === "r" || e.key === "R") && e.target.tagName !== "INPUT") reset(); });
+const startCustom = () => {
+  MODES.Custom = clampCustom({ w: $("cw").value, h: $("ch").value, m: $("cm").value });
+  try { localStorage.setItem("mfCustom", JSON.stringify(MODES.Custom)); } catch (err) {}
+  mode = "Custom";
+  saveMode();
+  $("custommodal").hidden = true;
+  buildModes();
+  reset();
+};
+$("cstart").onclick = startCustom;
+$("cclose").onclick = () => { $("custommodal").hidden = true; };
+$("custommodal").onclick = e => { if (e.target === $("custommodal")) $("custommodal").hidden = true; };
+for (const id of ["cw", "ch", "cm"]) $(id).onkeydown = e => { if (e.key === "Enter") startCustom(); };
+for (const id of ["cw", "ch"]) $(id).oninput = showCustomMax;
 
+try {
+  const c = JSON.parse(localStorage.getItem("mfCustom"));
+  if (c) MODES.Custom = clampCustom(c);
+  const sm = localStorage.getItem("mfMode");
+  if (sm && MODES[sm]) mode = sm;
+  if (localStorage.getItem("mfView") === "experimental") { view = "experimental"; experimental = true; }
+} catch (e) {}
 buildTabs();
+{ const v = VIEWS.find(x => x[0] === view); $("exp").hidden = !v[2]; $("exp").textContent = v[2]; }
 buildModes();
 buildRules();
 reset();
