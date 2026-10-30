@@ -169,6 +169,8 @@
     <div class="sep"></div>
     <button class="box" id="autochord" title="Hovering a number acts like a middle-click">Hover chord</button>
     <button class="box" id="autosweep" title="Clears around every number whose flags match, without hovering">Auto chord</button>
+    <button class="box" id="autoflag" title="Places a flag on every red mine">Auto flag</button>
+    <button class="box" id="autoopen" title="Opens every certain safe tile">Auto open</button>
     <div id="capnote" hidden>Rule 6 skipped some tangled areas.</div>
   </div>
 </aside>
@@ -179,7 +181,7 @@ const MODES = {
   Medium: { w: 16, h: 16, m: 40 },
   Hard:   { w: 30, h: 16, m: 99 },
 };
-let view = "classic", marks = new Map(), chances = new Map(), capped = false, whySet = new Set(), whyTile = null, experimental = false, autoChord = false, autoAll = false, sweeping = false, bests = {}, hover = null, hl = null, midPos = null, midHeld = false, mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
+let view = "classic", marks = new Map(), chances = new Map(), capped = false, whySet = new Set(), whyTile = null, experimental = false, autoChord = false, autoAll = false, sweeping = false, autoFlag = false, autoOpen = false, autoActing = false, bests = {}, hover = null, hl = null, midPos = null, midHeld = false, mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
 
 const $ = id => document.getElementById(id);
 const boardEl = $("board");
@@ -547,6 +549,25 @@ function refreshMarks() {
     if (!a !== !b || (a && a.kind !== b.kind) || pa !== pb) paint(k % W, Math.floor(k / W));
   }
   showWhy(whyTile);
+  autoAct();
+}
+
+// flags the certain mines and opens the certain safe tiles, again and again until nothing new is certain
+function autoAct() {
+  if ((!autoFlag && !autoOpen) || autoActing || over) return;
+  autoActing = true;
+  try {
+    for (let again = true; again && !over;) {
+      again = false;
+      for (const [k, m] of marks) {
+        const x = k % W, y = Math.floor(k / W), c = grid[y][x];
+        if (c.open || c.flag) continue;
+        if (m.kind === "mine" && autoFlag) flag(x, y);
+        else if (m.kind === "safe" && autoOpen) { dig(x, y); again = true; break; }
+      }
+    }
+  } finally { autoActing = false; }
+  settle();
 }
 
 // ---- the rules panel ----
@@ -841,6 +862,21 @@ $("autosweep").onclick = () => {
   $("autosweep").classList.toggle("on", autoAll);
   try { localStorage.setItem("autosweep", autoAll ? "1" : "0"); } catch (err) {}
   settle();
+};
+try { autoFlag = localStorage.getItem("autoflag") === "1"; autoOpen = localStorage.getItem("autoopen") === "1"; } catch (e) {}
+$("autoflag").classList.toggle("on", autoFlag);
+$("autoopen").classList.toggle("on", autoOpen);
+$("autoflag").onclick = () => {
+  autoFlag = !autoFlag;
+  $("autoflag").classList.toggle("on", autoFlag);
+  try { localStorage.setItem("autoflag", autoFlag ? "1" : "0"); } catch (err) {}
+  autoAct();
+};
+$("autoopen").onclick = () => {
+  autoOpen = !autoOpen;
+  $("autoopen").classList.toggle("on", autoOpen);
+  try { localStorage.setItem("autoopen", autoOpen ? "1" : "0"); } catch (err) {}
+  autoAct();
 };
 document.addEventListener("keydown", e => { if (e.key === "r" || e.key === "R") reset(); });
 
