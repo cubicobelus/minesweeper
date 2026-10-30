@@ -11,7 +11,8 @@ A minesweeper for the browser that can teach you how to solve it. A built-in sol
 ## The game
 
 - Three sizes: Easy 9x9 with 10 mines, Medium 16x16 with 40, Hard 30x16 with 99.
-- The first click is always safe.
+- Custom boards from 5x5 up to 40x24, with up to about a third of the tiles mined. Each custom size keeps its own best time.
+- The first click is always safe, and the game remembers your last size and tab.
 - Timer, mine counter, a best time per size and a stats popup (wins, win rate, average time, streaks).
 - Two tabs on the same board. Classic shows normal numbers. Experimental subtracts one from every number around a flag, so a 0 means that number is finished.
 - Clearing ripples outward, a win sends a gold wave across the board, a loss shakes it.
@@ -52,7 +53,7 @@ Below the rules are options that make the board play itself, all off by default:
 - **Auto chord**: every number whose flags match it is cleared without hovering.
 - **Auto flag**: flags every red mine.
 - **Auto open**: opens every certain safe tile.
-- **Delay**: from instant, through 10 ms, up to 1 second between moves, so you can watch it work.
+- **Delay**: from instant, then 10 ms and rising in round steps up to 1 second between moves, so you can watch it work.
 
 Wrong flags are never undone, and a wrong flag can still set off a mine when chording.
 
