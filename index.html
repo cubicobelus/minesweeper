@@ -105,6 +105,9 @@
   .rule { position: relative; margin-bottom: 8px; }
   .how { position: absolute; right: 8px; top: 9px; padding: 4px 8px; background: none; border: 0; border-radius: 6px; font: inherit; font-size: .7rem; color: var(--dim); cursor: pointer; }
   .how:hover { color: var(--text); background: rgba(255,255,255,.07); }
+  .slide { display: flex; align-items: center; gap: 10px; padding: 2px 4px 0; font-size: .78rem; color: var(--dim); }
+  .slide input { flex: 1; accent-color: var(--accent); }
+  .slide b { width: 52px; text-align: right; font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
   .sep { height: 1px; margin: 14px 0; background: var(--line); }
   .rbox { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 12px; background: none; border: 0; color: inherit; font: inherit; font-size: .85rem; text-align: left; cursor: pointer; }
   .rbox b { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; background: #232326; color: var(--dim); font-size: .72rem; }
@@ -171,6 +174,7 @@
     <button class="box" id="autosweep" title="Clears around every number whose flags match, without hovering">Auto chord</button>
     <button class="box" id="autoflag" title="Places a flag on every red mine">Auto flag</button>
     <button class="box" id="autoopen" title="Opens every certain safe tile">Auto open</button>
+    <label class="slide" title="Pause between automatic moves"><span>Delay</span><input type="range" id="autodelay" min="0" max="1000" step="25" value="0"><b id="delayval">0 ms</b></label>
     <div id="capnote" hidden>Rule 6 skipped some tangled areas.</div>
   </div>
 </aside>
@@ -181,7 +185,7 @@ const MODES = {
   Medium: { w: 16, h: 16, m: 40 },
   Hard:   { w: 30, h: 16, m: 99 },
 };
-let view = "classic", marks = new Map(), chances = new Map(), capped = false, whySet = new Set(), whyTile = null, experimental = false, autoChord = false, autoAll = false, sweeping = false, autoFlag = false, autoOpen = false, autoActing = false, bests = {}, hover = null, hl = null, midPos = null, midHeld = false, mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
+let view = "classic", marks = new Map(), chances = new Map(), capped = false, whySet = new Set(), whyTile = null, experimental = false, autoChord = false, autoAll = false, sweeping = false, autoFlag = false, autoOpen = false, autoDelay = 0, autoTimer = null, autoBusy = false, bests = {}, hover = null, hl = null, midPos = null, midHeld = false, mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
 
 const $ = id => document.getElementById(id);
 const boardEl = $("board");
@@ -223,6 +227,7 @@ function buildModes() {
 function reset() {
   ({ w: W, h: H, m: M } = MODES[mode]);
   clearInterval(timer);
+  clearTimeout(autoTimer); autoTimer = null;
   hover = hl = midPos = null; midHeld = false; marks = new Map(); chances = new Map(); capped = false; whySet = new Set(); whyTile = null;
   secs = 0; started = false; over = false; flags = 0; revealed = 0;
   grid = Array.from({ length: H }, () => Array.from({ length: W }, () => ({ mine: false, n: 0, open: false, flag: false })));
@@ -549,25 +554,39 @@ function refreshMarks() {
     if (!a !== !b || (a && a.kind !== b.kind) || pa !== pb) paint(k % W, Math.floor(k / W));
   }
   showWhy(whyTile);
-  autoAct();
+  autoRun();
 }
 
-// flags the certain mines and opens the certain safe tiles, again and again until nothing new is certain
-function autoAct() {
-  if ((!autoFlag && !autoOpen) || autoActing || over) return;
-  autoActing = true;
+// One automatic move at a time: flag a red mine, open a safe tile, or clear around a finished number.
+function autoStep() {
+  if (over || autoBusy) return false;
+  autoBusy = true;
   try {
-    for (let again = true; again && !over;) {
-      again = false;
-      for (const [k, m] of marks) {
-        const x = k % W, y = Math.floor(k / W), c = grid[y][x];
-        if (c.open || c.flag) continue;
-        if (m.kind === "mine" && autoFlag) flag(x, y);
-        else if (m.kind === "safe" && autoOpen) { dig(x, y); again = true; break; }
-      }
+    if (autoFlag) for (const [k, m] of marks) {
+      const x = k % W, y = Math.floor(k / W), c = grid[y][x];
+      if (m.kind === "mine" && !c.open && !c.flag) { flag(x, y); return true; }
     }
-  } finally { autoActing = false; }
-  settle();
+    if (autoOpen) for (const [k, m] of marks) {
+      const x = k % W, y = Math.floor(k / W), c = grid[y][x];
+      if (m.kind === "safe" && !c.open && !c.flag) { dig(x, y); return true; }
+    }
+    if (autoAll) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const c = grid[y][x];
+      if (!c.open || !c.n) continue;
+      let f = 0, closed = 0;
+      for (const [a, b] of neighbors(x, y)) { const t = grid[b][a]; if (t.flag) f++; else if (!t.open) closed++; }
+      if (f === c.n && closed) { chord(x, y); return true; }
+    }
+    return false;
+  } finally { autoBusy = false; }
+}
+
+// runs the moves back to back, or one every autoDelay ms so they can be watched
+function autoRun() {
+  if (autoBusy || autoTimer || over || !(autoFlag || autoOpen || autoAll)) return;
+  if (autoDelay === 0) { for (let n = 0; n < 5000 && autoStep(); n++); return; }
+  const tick = () => { autoTimer = null; if (autoStep()) autoTimer = setTimeout(tick, autoDelay); };
+  tick();
 }
 
 // ---- the rules panel ----
@@ -776,25 +795,7 @@ function endHover() {
 
 function showBest() { $("best").textContent = bests[mode] == null ? "---" : pad(bests[mode]); }
 
-// auto chord: clears around every number whose flags already match it, over and over until nothing is left
-function sweep() {
-  if (!autoAll || over || sweeping) return;
-  sweeping = true;
-  try {
-    for (let again = true; again && !over;) {
-      again = false;
-      for (let y = 0; y < H && !over; y++) for (let x = 0; x < W && !over; x++) {
-        const c = grid[y][x];
-        if (!c.open || !c.n) continue;
-        let f = 0, closed = 0;
-        for (const [a, b] of neighbors(x, y)) { const t = grid[b][a]; if (t.flag) f++; else if (!t.open) closed++; }
-        if (f === c.n && closed) { chord(x, y); again = true; }
-      }
-    }
-  } finally { sweeping = false; }
-}
-
-function settle() { sweep(); hoverChord(); }
+function settle() { autoRun(); hoverChord(); }
 
 function hoverChord() {
   if (!autoChord || over || !hover || !grid[hover[1]][hover[0]].open) return;
@@ -870,13 +871,22 @@ $("autoflag").onclick = () => {
   autoFlag = !autoFlag;
   $("autoflag").classList.toggle("on", autoFlag);
   try { localStorage.setItem("autoflag", autoFlag ? "1" : "0"); } catch (err) {}
-  autoAct();
+  autoRun();
+};
+const showDelay = () => { $("delayval").textContent = autoDelay >= 1000 ? "1 s" : autoDelay + " ms"; };
+try { autoDelay = Math.min(1000, Math.max(0, parseInt(localStorage.getItem("autodelay"), 10) || 0)); } catch (e) {}
+$("autodelay").value = autoDelay;
+showDelay();
+$("autodelay").oninput = e => {
+  autoDelay = +e.target.value;
+  showDelay();
+  try { localStorage.setItem("autodelay", String(autoDelay)); } catch (err) {}
 };
 $("autoopen").onclick = () => {
   autoOpen = !autoOpen;
   $("autoopen").classList.toggle("on", autoOpen);
   try { localStorage.setItem("autoopen", autoOpen ? "1" : "0"); } catch (err) {}
-  autoAct();
+  autoRun();
 };
 document.addEventListener("keydown", e => { if (e.key === "r" || e.key === "R") reset(); });
 
