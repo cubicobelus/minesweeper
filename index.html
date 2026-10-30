@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>Minesweeper</title>
+<meta name="description" content="A minesweeper for the browser with a built-in solver that teaches the rules, shows mine chances and can play for you.">
+<meta name="theme-color" content="#060607">
+<meta property="og:title" content="Minesweeper">
+<meta property="og:description" content="A minesweeper for the browser with a built-in solver that teaches the rules, shows mine chances and can play for you.">
+<meta property="og:image" content="https://cubicobelus.github.io/minesweeper/docs/screenshot.jpg">
+<meta property="og:url" content="https://cubicobelus.github.io/minesweeper/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23060607'/%3E%3Cpath d='M11 7v19' stroke='%23d4af37' stroke-width='2.4' stroke-linecap='round'/%3E%3Cpath d='M12 8l12 5.5L12 19z' fill='%23d4af37'/%3E%3C/svg%3E">
 <style>
   :root {
     --bg: #060607;
@@ -31,7 +38,8 @@
     user-select: none; -webkit-user-select: none;
   }
   .wrap { position: relative; display: flex; flex-direction: column; align-items: stretch; max-width: 100%; }
-  h1 { text-align: center; margin: 0 0 20px; font-size: 1.05rem; font-weight: 600; letter-spacing: -.01em; }
+  h1 { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0 0 22px; font-size: .78rem; font-weight: 600; letter-spacing: .38em; text-transform: uppercase; }
+  h1 svg { color: var(--accent); }
   .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
   .tabs { display: flex; justify-content: center; gap: 22px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
   .tabs button { font: inherit; font-size: .85rem; font-weight: 500; color: var(--dim); background: none; border: 0; padding: 0 0 10px; margin-bottom: -1px; cursor: pointer; border-bottom: 2px solid transparent; transition: color .15s; }
@@ -108,6 +116,21 @@
   .slide { display: flex; align-items: center; gap: 10px; padding: 2px 4px 0; font-size: .78rem; color: var(--dim); }
   .slide input { flex: 1; accent-color: var(--accent); }
   .slide b { width: 52px; text-align: right; font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
+  #statsbtn { font: inherit; font-size: .74rem; color: var(--dim); background: none; border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+  #statsbtn:hover { color: var(--text); border-color: #3a3a3f; }
+  #statsmodal { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(0,0,0,.68); }
+  #statsmodal[hidden] { display: none; }
+  .card { position: relative; min-width: min(400px, 90vw); padding: 22px 24px; background: #0d0d0e; border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.7); }
+  .card h2 { margin: 0 0 14px; font-size: .74rem; font-weight: 600; letter-spacing: .3em; text-transform: uppercase; }
+  .card table { width: 100%; border-collapse: collapse; font-size: .82rem; font-variant-numeric: tabular-nums; }
+  .card th { padding: 4px 0 8px; color: var(--dim); font-weight: 500; text-align: right; }
+  .card td { padding: 7px 0; text-align: right; border-top: 1px solid var(--line); }
+  .card th:first-child, .card td:first-child { text-align: left; }
+  .srow { display: flex; justify-content: space-between; padding-top: 10px; font-size: .82rem; color: var(--dim); }
+  .srow b { font-weight: 500; color: var(--text); }
+  #statsclose { position: absolute; right: 12px; top: 8px; background: none; border: 0; color: var(--dim); font-size: 1.3rem; cursor: pointer; }
+  #statsclose:hover { color: var(--text); }
+  #statsreset { margin-top: 18px; background: none; border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; font: inherit; font-size: .72rem; color: var(--dim); cursor: pointer; }
   .sep { height: 1px; margin: 14px 0; background: var(--line); }
   .rbox { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 12px; background: none; border: 0; color: inherit; font: inherit; font-size: .85rem; text-align: left; cursor: pointer; }
   .rbox b { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; background: #232326; color: var(--dim); font-size: .72rem; }
@@ -128,7 +151,10 @@
   #why { width: 0; min-width: 100%; min-height: 2.6em; margin-top: 8px; text-align: center; color: var(--dim); font-size: .78rem; line-height: 1.45; }
   #why b { color: var(--text); font-weight: 600; }
   .c.mine::before { animation: dot .3s ease-out backwards; animation-delay: var(--md, 0ms); }
-  @media (prefers-reduced-motion: reduce) { .c.anim, .c.flag::before, .c.flag::after, .c.mine::before { animation: none; } }
+  @keyframes wave { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.2); box-shadow: 0 0 16px rgba(212,175,55,.75); } }
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-7px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(2px); } }
+  .scroller.shake { animation: shake .42s ease-out; }
+  @media (prefers-reduced-motion: reduce) { .scroller.shake, .c.anim, .c.flag::before, .c.flag::after, .c.mine::before { animation: none; } }
   .c.mine::before { content: ""; width: 38%; height: 38%; border-radius: 50%; background: var(--red); }
   .c.boom { background: rgba(194,59,50,.3); }
   .c.wrong::before { content: ""; width: 38%; height: 2px; background: var(--red); transform: rotate(-45deg); }
@@ -143,16 +169,23 @@
   #msg.win { color: var(--accent); }
   #msg.lose { color: var(--red); }
   .hint { width: 0; min-width: 100%; text-align: center; margin-top: 4px; color: var(--dim); font-size: .75rem; opacity: .7; }
+  #tapmode { display: none; align-self: center; margin-top: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  #tapmode button { font: inherit; font-size: .8rem; font-weight: 500; color: var(--dim); background: none; border: 0; border-radius: 7px; padding: 8px 26px; cursor: pointer; }
+  #tapmode button.on { color: var(--text); background: var(--cell-hi); }
+  #tapmode button.on[data-m="flag"] { color: #000; background: var(--accent); }
+  @media (pointer: coarse), (max-width: 700px) { #tapmode { display: flex; } }
+  @media (max-width: 700px) { #rtab { top: auto; bottom: 18px; } .top { flex-direction: column; align-items: center; gap: 12px; } .stats { flex-wrap: wrap; justify-content: center; gap: 10px 14px; } }
   @media (max-width: 520px) { :root { --size: 30px; } }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>minesweeper</h1>
+  <h1><svg viewBox="0 0 14 16" width="14" height="16" aria-hidden="true"><path d="M2 1v14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M3 2l9 4-9 4z" fill="currentColor"/></svg>minesweeper</h1>
   <div class="tabs" id="tabs"></div>
   <div class="top">
     <div class="modes" id="modes"></div>
     <div class="stats">
+      <button id="statsbtn">Stats</button>
       <span>Best<b id="best">---</b></span>
       <span>Mines<b id="mines">010</b></span>
       <span>Time<b id="time">000</b></span>
@@ -162,7 +195,16 @@
   <div class="scroller"><div id="board"></div></div>
   <div id="msg"></div>
   <div id="why"></div>
+  <div id="tapmode"><button class="on" data-m="dig">Dig</button><button data-m="flag">Flag</button></div>
   <div class="hint" id="exp" hidden></div>
+</div>
+<div id="statsmodal" hidden>
+  <div class="card">
+    <button id="statsclose" aria-label="Close">&times;</button>
+    <h2>Stats</h2>
+    <div id="statsbody"></div>
+    <button id="statsreset">Reset</button>
+  </div>
 </div>
 <aside id="rules">
   <button id="rtab">Rules</button>
@@ -174,7 +216,7 @@
     <button class="box" id="autosweep" title="Clears around every number whose flags match, without hovering">Auto chord</button>
     <button class="box" id="autoflag" title="Places a flag on every red mine">Auto flag</button>
     <button class="box" id="autoopen" title="Opens every certain safe tile">Auto open</button>
-    <label class="slide" title="Pause between automatic moves"><span>Delay</span><input type="range" id="autodelay" min="0" max="1000" step="25" value="0"><b id="delayval">0 ms</b></label>
+    <label class="slide" title="Pause between automatic moves"><span>Delay</span><input type="range" id="autodelay" min="0" max="20" step="1" value="0"><b id="delayval">0 ms</b></label>
     <div id="capnote" hidden>Rule 6 skipped some tangled areas.</div>
   </div>
 </aside>
@@ -185,7 +227,7 @@ const MODES = {
   Medium: { w: 16, h: 16, m: 40 },
   Hard:   { w: 30, h: 16, m: 99 },
 };
-let view = "classic", marks = new Map(), chances = new Map(), capped = false, whySet = new Set(), whyTile = null, experimental = false, autoChord = false, autoAll = false, sweeping = false, autoFlag = false, autoOpen = false, autoDelay = 0, autoTimer = null, autoBusy = false, bests = {}, hover = null, hl = null, midPos = null, midHeld = false, mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
+let view = "classic", marks = new Map(), chances = new Map(), capped = false, whySet = new Set(), whyTile = null, experimental = false, autoChord = false, autoAll = false, sweeping = false, autoFlag = false, autoOpen = false, autoDelay = 0, autoTimer = null, autoBusy = false, tapFlag = false, lastTile = null, assisted = false, stats = {}, bests = {}, hover = null, hl = null, midPos = null, midHeld = false, mode = "Easy", W, H, M, grid, cells, started, over, flags, revealed, timer, secs;
 
 const $ = id => document.getElementById(id);
 const boardEl = $("board");
@@ -228,6 +270,8 @@ function reset() {
   ({ w: W, h: H, m: M } = MODES[mode]);
   clearInterval(timer);
   clearTimeout(autoTimer); autoTimer = null;
+  assisted = false; lastTile = null;
+  document.querySelector(".scroller").classList.remove("shake");
   hover = hl = midPos = null; midHeld = false; marks = new Map(); chances = new Map(); capped = false; whySet = new Set(); whyTile = null;
   secs = 0; started = false; over = false; flags = 0; revealed = 0;
   grid = Array.from({ length: H }, () => Array.from({ length: W }, () => ({ mine: false, n: 0, open: false, flag: false })));
@@ -701,11 +745,13 @@ function reveal(x, y) {
     paint(cx, cy);
     if (!c.n) for (const [nx, ny] of neighbors(cx, cy)) q.push([nx, ny, d + 1]);
   }
+  noteAssist();
   refreshMarks();
 }
 
 function dig(x, y) {
   if (over) return;
+  lastTile = [x, y];
   const c = grid[y][x];
   if (c.flag) return;
   if (c.open) return chord(x, y);
@@ -716,6 +762,7 @@ function dig(x, y) {
 }
 
 function chord(x, y) {
+  lastTile = [x, y];
   const c = grid[y][x];
   const ns = neighbors(x, y);
   if (!c.n || ns.filter(([a, b]) => grid[b][a].flag).length !== c.n) return;
@@ -748,6 +795,13 @@ function lose(bx, by) {
   }
   cells[by][bx].className = "c open mine boom";
   $("msg").textContent = "Boom. Game over"; $("msg").className = "lose";
+  recordGame(false);
+  if (!calm()) {
+    const sc = document.querySelector(".scroller");
+    sc.classList.remove("shake");
+    void sc.offsetWidth;
+    sc.classList.add("shake");
+  }
 }
 
 function win() {
@@ -766,7 +820,16 @@ function win() {
     showBest();
   }
   $("msg").textContent = `Cleared in ${secs}s` + (isBest ? " · best" : ""); $("msg").className = "win";
+  recordGame(true);
+  if (!calm()) {
+    // a gold wave runs out from the last tile you cleared
+    const [ox, oy] = lastTile || [W >> 1, H >> 1];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+      cells[y][x].style.animation = `wave .7s ease-out ${Math.min(Math.hypot(x - ox, y - oy) * 30, 1000)}ms both`;
+  }
 }
+
+const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function setHl(pos) {
   const old = hl;
@@ -791,6 +854,37 @@ function setHover(pos) { hover = pos; refreshHl(); }
 function endHover() {
   hover = hl = null; midHeld = false;
   boardEl.querySelectorAll(".adj").forEach(el => el.classList.remove("adj"));
+}
+
+function emptyStats() {
+  const o = { streak: 0, bestStreak: 0, assisted: 0 };
+  for (const m of Object.keys(MODES)) o[m] = { p: 0, w: 0, total: 0 };
+  return o;
+}
+
+function noteAssist() {
+  if (autoFlag || autoOpen || autoAll || autoChord || Object.values(rules).some(Boolean)) assisted = true;
+}
+
+function recordGame(won) {
+  const st = stats[mode];
+  st.p++;
+  if (won) {
+    st.w++; st.total += secs; stats.streak++;
+    stats.bestStreak = Math.max(stats.bestStreak, stats.streak);
+    if (assisted) stats.assisted++;
+  } else stats.streak = 0;
+  try { localStorage.setItem("mfStats", JSON.stringify(stats)); } catch (err) {}
+}
+
+function renderStats() {
+  const rows = Object.keys(MODES).map(m => {
+    const t = stats[m];
+    return `<tr><td>${m}</td><td>${t.w}/${t.p}</td><td>${t.p ? Math.round(100 * t.w / t.p) + "%" : "-"}</td><td>${bests[m] == null ? "-" : bests[m] + "s"}</td><td>${t.w ? Math.round(t.total / t.w) + "s" : "-"}</td></tr>`;
+  }).join("");
+  $("statsbody").innerHTML = `<table><tr><th></th><th>Won</th><th>Rate</th><th>Best</th><th>Avg</th></tr>${rows}</table>
+    <div class="srow"><span>Win streak</span><b>${stats.streak} (best ${stats.bestStreak})</b></div>
+    <div class="srow"><span>Assisted wins</span><b>${stats.assisted}</b></div>`;
 }
 
 function showBest() { $("best").textContent = bests[mode] == null ? "---" : pad(bests[mode]); }
@@ -840,11 +934,30 @@ boardEl.addEventListener("pointerdown", e => {
 boardEl.addEventListener("click", e => {
   if (longFired) { longFired = false; return; }
   const t = target(e);
-  if (t) { dig(...t); settle(); }
+  if (t) { if (tapFlag && !grid[t[1]][t[0]].open) flag(...t); else dig(...t); settle(); }
+});
+document.querySelectorAll("#tapmode button").forEach(b => b.onclick = () => {
+  tapFlag = b.dataset.m === "flag";
+  document.querySelectorAll("#tapmode button").forEach(o => o.classList.toggle("on", o === b));
 });
 $("face").onclick = reset;
+stats = emptyStats();
+try { const saved = JSON.parse(localStorage.getItem("mfStats")); if (saved) stats = Object.assign(emptyStats(), saved); } catch (e) {}
+$("statsbtn").onclick = () => { renderStats(); $("statsmodal").hidden = false; };
+$("statsclose").onclick = () => { $("statsmodal").hidden = true; };
+$("statsmodal").onclick = e => { if (e.target === $("statsmodal")) $("statsmodal").hidden = true; };
+$("statsreset").onclick = () => {
+  const b = $("statsreset");
+  if (b.textContent === "Reset") { b.textContent = "Sure?"; setTimeout(() => { b.textContent = "Reset"; }, 3000); return; }
+  b.textContent = "Reset";
+  stats = emptyStats();
+  bests = {};
+  try { localStorage.setItem("mfStats", JSON.stringify(stats)); localStorage.setItem("mfBest", "{}"); } catch (err) {}
+  showBest();
+  renderStats();
+};
 document.addEventListener("click", e => { if (!e.target.closest("#rules")) setDrawer(false); });
-document.addEventListener("keydown", e => { if (e.key === "Escape") setDrawer(false); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") { setDrawer(false); $("statsmodal").hidden = true; } });
 try { bests = JSON.parse(localStorage.getItem("mfBest")) || {}; } catch (e) {}
 try { autoChord = localStorage.getItem("autochord") === "1"; } catch (e) {}
 $("autochord").classList.toggle("on", autoChord);
@@ -873,14 +986,20 @@ $("autoflag").onclick = () => {
   try { localStorage.setItem("autoflag", autoFlag ? "1" : "0"); } catch (err) {}
   autoRun();
 };
+// slider position 0 is no delay, then 10 ms rising steeply to 1 s at the far right
+const DELAY_STEPS = 20;
+const delayMs = v => v === 0 ? 0 : Math.round(10 * Math.pow(100, (v - 1) / (DELAY_STEPS - 1)));
 const showDelay = () => { $("delayval").textContent = autoDelay >= 1000 ? "1 s" : autoDelay + " ms"; };
-try { autoDelay = Math.min(1000, Math.max(0, parseInt(localStorage.getItem("autodelay"), 10) || 0)); } catch (e) {}
-$("autodelay").value = autoDelay;
+let delayPos = 0;
+try { delayPos = Math.min(DELAY_STEPS, Math.max(0, parseInt(localStorage.getItem("autodelay2"), 10) || 0)); } catch (e) {}
+autoDelay = delayMs(delayPos);
+$("autodelay").value = delayPos;
 showDelay();
 $("autodelay").oninput = e => {
-  autoDelay = +e.target.value;
+  delayPos = +e.target.value;
+  autoDelay = delayMs(delayPos);
   showDelay();
-  try { localStorage.setItem("autodelay", String(autoDelay)); } catch (err) {}
+  try { localStorage.setItem("autodelay2", String(delayPos)); } catch (err) {}
 };
 $("autoopen").onclick = () => {
   autoOpen = !autoOpen;
